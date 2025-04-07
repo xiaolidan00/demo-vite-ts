@@ -72,9 +72,9 @@ const SphericalMercator = {
   }
 };
 const pos = SphericalMercator.lnglat2px([110, 39], 4);
-console.log('🚀 ~ pos:', pos);
+console.log("🚀 ~ pos:", pos);
 const pp = SphericalMercator.px2lnglat(pos, 4);
-console.log('🚀 ~ pp:', pp);
+console.log("🚀 ~ pp:", pp);
 
 function debounce(fn: Function, time: number) {
   let timeout: any; // 创建一个标记用来存放定时器的返回值
@@ -91,44 +91,82 @@ type MapOptions = {
   zoom: number;
   container: HTMLElement;
 };
+type ShadowBlurStyle = {
+  /**@description  阴影模糊颜色 */
+  shadowColor: string;
+  /**@description  阴影模糊,当值大于0时绘制  */
+  shadowBlur: number;
+  /**@description  阴影模糊偏移x */
+  shadowOffsetX: number;
+  /**@description 阴影模糊偏移y */
+  shadowOffsetY: number;
+};
 type LineStyle = {
-  borderColor: string;
+  /**@description 描边颜色，当值大于0时绘制  */
+  lineColor: string;
+  /**@description 描边不透明度 */
+  lineOpacity: number;
+  /**@description 描边宽度，当值大于0时绘制  */
   lineWidth: number;
-
-  lineShadowColor: string;
-  lineShadowBlur: number;
-  lineShadowOffsetX: number;
-  lineShadowOffsetY: number;
+  lineShadowBlurStyle: ShadowBlurStyle;
+  /**@description 虚线间距，当值大于0时绘制 */
   dashWidth: number;
 };
 type ShapeStyle = {
+  /**@description 填充颜色  */
   fillColor: string;
-
-  shadowColor: string;
-  shadowBlur: number;
-  shadowOffsetX: number;
-  shadowOffsetY: number;
+  /**@description 填充不透明度 */
+  fillOpacity: number;
+  fillShadowBlurStyle: ShadowBlurStyle;
 } & LineStyle;
-type TextStyle={
-  textAlign:'center'|'left'|'right'
-  fontSize:number
-  fontFamily:string
-  textBaseline:'top'|'middle'|'bottom',
-  textColor:string
-}
-type MapPolygon = {
-  type: 'Polygon';
-  path: LngLatXY[];
+type TextStyle = {
+  /**@description 文本横向对齐 */
+  textAlign: "center" | "left" | "right";
+  /**@description 文本大小 */
+  fontSize: number;
+  /**@description 字体 */
+  fontFamily: string;
+  /**@description 文本纵向对齐 */
+  textBaseline: "top" | "middle" | "bottom";
 } & ShapeStyle;
-type MapLine = {
-  type: 'Line';
+type MapPolygon = {
+  type: "Polygon";
   path: LngLatXY[];
-} & LineStyle;
-type MapLabel={
-  pos:LngLatXY,
-text:string
-}
-type MapDrawType = (MapPolygon | MapLine) & { id: string | number };
+  style: ShapeStyle;
+};
+type MapLine = {
+  type: "Line";
+  path: LngLatXY[];
+  style: LineStyle;
+};
+type MapLabel = {
+  pos: LngLatXY;
+  text: string;
+  offsetX: number;
+  offsetY: number;
+  style: TextStyle;
+};
+type MapCircle = {
+  center: LngLatXY;
+  radius: number;
+  style: ShapeStyle;
+};
+type MapRect = {
+  start: LngLatXY;
+  end: LngLatXY;
+  style: ShapeStyle;
+};
+type MapImage = {
+  pos: LngLatXY;
+  width: number;
+  height: number;
+  offsetX: number;
+  offsetY: number;
+};
+type MapDrawType = (MapPolygon | MapLine | MapImage | MapRect | MapCircle | MapLabel) & {
+  id: string | number;
+  name: string;
+};
 class MyMap {
   tileSize = 256;
   container: HTMLElement;
@@ -147,27 +185,27 @@ class MyMap {
     end: [0, 0],
     moveStep: 0.3
   };
-  drawMap = new Map<string, MapDrawType>();
+  drawMap = new Map<string, MapDrawType[]>();
   tileCenter: LngLatXY = [0, 0];
   tileStart: LngLatXY = [0, 0];
   tileEnd: LngLatXY = [0, 0];
   isDrawLayer = false;
-  cacheTiles: { [n: string]: HTMLImageElement } = {};
+  cacheTiles: {[n: string]: HTMLImageElement} = {};
 
-  tileUrl = 'http://wprd04.is.autonavi.com/appmaptile?lang=zh_cn&size=1&style=7&x={x}&y={y}&z={z}';
+  tileUrl = "http://wprd04.is.autonavi.com/appmaptile?lang=zh_cn&size=1&style=7&x={x}&y={y}&z={z}";
   constructor(options: MapOptions) {
     this.center = options.center;
     this.zoom = options.zoom;
     this.container = options.container;
-    this.container.style.display = 'flex';
-    this.container.style.flexDirection = 'column';
-    this.canvas = document.createElement('canvas');
+    this.container.style.display = "flex";
+    this.container.style.flexDirection = "column";
+    this.canvas = document.createElement("canvas");
     this.container.appendChild(this.canvas);
-    this.canvas.style.flex = 'none';
-    this.mark = document.createElement('div');
-    this.mark.style.position = 'relative';
-    this.mark.style.flex = 'none';
-    this.mark.style.zIndex = '2';
+    this.canvas.style.flex = "none";
+    this.mark = document.createElement("div");
+    this.mark.style.position = "relative";
+    this.mark.style.flex = "none";
+    this.mark.style.zIndex = "2";
     this.container.appendChild(this.mark);
     this.resize();
 
@@ -175,34 +213,34 @@ class MyMap {
   }
 
   onListener() {
-    window.addEventListener('resize', this.resize);
+    window.addEventListener("resize", this.resize);
     if (this.mark) {
-      this.mark.addEventListener('click', this.onClickMap.bind(this));
-      this.mark.addEventListener('mousedown', this.onMouseDown.bind(this));
-      this.mark.addEventListener('mousemove', this.onMouseMove.bind(this));
-      this.mark.addEventListener('mouseup', this.onMouseUp.bind(this));
-      this.mark.addEventListener('mouseleave', this.onMouseUp.bind(this));
-      this.mark.addEventListener('wheel', this.onWheel);
-      document.addEventListener('mouseup', this.onMouseUp.bind(this));
+      this.mark.addEventListener("click", this.onClickMap.bind(this));
+      this.mark.addEventListener("mousedown", this.onMouseDown.bind(this));
+      this.mark.addEventListener("mousemove", this.onMouseMove.bind(this));
+      this.mark.addEventListener("mouseup", this.onMouseUp.bind(this));
+      this.mark.addEventListener("mouseleave", this.onMouseUp.bind(this));
+      this.mark.addEventListener("wheel", this.onWheel);
+      document.addEventListener("mouseup", this.onMouseUp.bind(this));
     }
 
-    window.addEventListener('unload', this.offListener.bind(this));
+    window.addEventListener("unload", this.offListener.bind(this));
   }
   offListener() {
-    window.removeEventListener('resize', this.resize);
+    window.removeEventListener("resize", this.resize);
     if (this.container) {
-      this.mark.removeEventListener('click', this.onClickMap.bind(this));
-      this.mark.removeEventListener('mousedown', this.onMouseDown.bind(this));
-      this.mark.removeEventListener('mousemove', this.onMouseMove.bind(this));
-      this.mark.removeEventListener('mouseup', this.onMouseUp.bind(this));
-      this.mark.removeEventListener('mouseleave', this.onMouseUp.bind(this));
-      this.mark.removeEventListener('wheel', this.onWheel);
-      document.removeEventListener('mouseup', this.onMouseUp.bind(this));
+      this.mark.removeEventListener("click", this.onClickMap.bind(this));
+      this.mark.removeEventListener("mousedown", this.onMouseDown.bind(this));
+      this.mark.removeEventListener("mousemove", this.onMouseMove.bind(this));
+      this.mark.removeEventListener("mouseup", this.onMouseUp.bind(this));
+      this.mark.removeEventListener("mouseleave", this.onMouseUp.bind(this));
+      this.mark.removeEventListener("wheel", this.onWheel);
+      document.removeEventListener("mouseup", this.onMouseUp.bind(this));
     }
   }
   setZoom(z: number) {
     if (z >= 3 && z <= 19) {
-      this.zoom = Math.ceil(z);
+      this.zoom = z;
       this.drawLayer();
       console.log(z);
     }
@@ -215,7 +253,7 @@ class MyMap {
   }
   onWheel = debounce(
     function (ev: WheelEvent) {
-      console.log('🚀 ~ MyMap ~ onWheel ~ ev:', ev, ev.deltaY);
+      console.log("🚀 ~ MyMap ~ onWheel ~ ev:", ev, ev.deltaY);
       if (ev.deltaY > 0) {
         //down
         this.setZoom(this.zoom - 1);
@@ -254,10 +292,7 @@ class MyMap {
       const x = ev.offsetX;
       const y = ev.offsetY;
       const zoom = this.getZoom();
-      const lnglat = this.projection.px2lnglat(
-        [x + this.tileStart[0], y + this.tileStart[1]],
-        zoom
-      );
+      const lnglat = this.projection.px2lnglat([x + this.tileStart[0], y + this.tileStart[1]], zoom);
       console.log(lnglat);
     }
   }
@@ -265,9 +300,9 @@ class MyMap {
   resize = debounce(
     function () {
       const size = this.getMapSize();
-      this.mark.style.top = -size[1] + 'px';
-      this.mark.style.width = size[0] + 'px';
-      this.mark.style.height = size[1] + 'px';
+      this.mark.style.top = -size[1] + "px";
+      this.mark.style.width = size[0] + "px";
+      this.mark.style.height = size[1] + "px";
       this.canvas.width = size[0];
       this.canvas.height = size[1];
       this.drawLayer();
@@ -278,18 +313,19 @@ class MyMap {
     return [this.container.clientWidth, this.container.clientHeight];
   }
   getZoom() {
+    return this.zoom;
+  }
+  getCeilZoom() {
     return Math.ceil(this.zoom);
   }
+
   getTileImage(x: number, y: number, z: number) {
     return new Promise<HTMLImageElement>((resolve) => {
       const id = `${x}-${y}-${z}`;
       if (this.cacheTiles[id]) {
         resolve(this.cacheTiles[id]);
       } else {
-        const url = this.tileUrl
-          .replace('{x}', String(x))
-          .replace('{y}', String(y))
-          .replace('{z}', String(z));
+        const url = this.tileUrl.replace("{x}", String(x)).replace("{y}", String(y)).replace("{z}", String(z));
         const image = new Image();
         image.src = url;
         image.onload = () => {
@@ -299,9 +335,14 @@ class MyMap {
       }
     });
   }
-  xy2lnglat() {}
+  xy2lnglat(xy: LngLatXY, zoom: number) {
+    return this.projection.px2lnglat(xy, zoom);
+  }
+  lnglat2xy(lnglat: LngLatXY, zoom: number) {
+    return this.projection.lnglat2px(lnglat, zoom);
+  }
   drawPolygon(path: LngLatXY[], style: ShapeStyle) {
-    const ctx = this.canvas.getContext('2d') as CanvasRenderingContext2D;
+    const ctx = this.canvas.getContext("2d") as CanvasRenderingContext2D;
 
     const z = this.getZoom();
     const xy = this.projection.lnglat2px(path[0], z);
@@ -333,14 +374,7 @@ class MyMap {
       offset: [bounds[0][0] * this.tileSize - start[0], bounds[0][1] * this.tileSize - start[1]]
     };
   }
-  async drawTileImage(
-    ctx: CanvasRenderingContext2D,
-    x: number,
-    y: number,
-    z: number,
-    imageX: number,
-    imageY: number
-  ) {
+  async drawTileImage(ctx: CanvasRenderingContext2D, x: number, y: number, z: number, imageX: number, imageY: number) {
     const image = await this.getTileImage(x, y, z);
     ctx.drawImage(image, imageX, imageY);
   }
@@ -348,10 +382,10 @@ class MyMap {
     if (this.isDrawLayer) return;
 
     this.isDrawLayer = true;
-    console.log('🚀drawLayer');
-    const ctx = this.canvas.getContext('2d') as CanvasRenderingContext2D;
+    console.log("🚀drawLayer");
+    const ctx = this.canvas.getContext("2d") as CanvasRenderingContext2D;
     const z = this.getZoom();
-    const { offset, bounds, start, end } = this.getTileBounds(z);
+    const {offset, bounds, start, end} = this.getTileBounds(z);
     this.tileStart = start;
     this.tileEnd = end;
     const queue = [];
@@ -377,7 +411,7 @@ class MyMap {
   drawShape() {}
 }
 const map = new MyMap({
-  container: document.getElementById('map') as HTMLElement,
+  container: document.getElementById("map") as HTMLElement,
   zoom: 19,
   center: [116.407387, 39.904179]
 });
