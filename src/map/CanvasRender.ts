@@ -44,18 +44,18 @@ export type CommonCanvasType = {
   zIndex?: number;
 };
 export type CanvasPolygon = CommonCanvasType & {
-  type: "Polygon";
+  type: 'Polygon';
   path: PxXY[];
   style: ShapeStyle;
 };
 export type CanvasLine = CommonCanvasType & {
-  type: "Line";
+  type: 'Line';
   path: PxXY[];
   style: LineStyle;
 };
 
 export type CanvasText = CommonCanvasType & {
-  type: "Text";
+  type: 'Text';
   pos: PxXY;
   text: string;
   offsetX?: number;
@@ -63,20 +63,20 @@ export type CanvasText = CommonCanvasType & {
   style: TextStyle;
 };
 export type CanvasCircle = CommonCanvasType & {
-  type: "Circle";
+  type: 'Circle';
   center: PxXY;
   radius: number;
   style: ShapeStyle;
 };
 export type CanvasRect = CommonCanvasType & {
-  type: "Rect";
+  type: 'Rect';
   start: PxXY;
   end: PxXY;
 
   style: ShapeStyle;
 };
 export type CanvasImage = CommonCanvasType & {
-  type: "Image";
+  type: 'Image';
   url: string;
   pos: PxXY;
   width?: number;
@@ -119,13 +119,13 @@ function isPointInPolygon(pt: PxXY, pts: PxXY[]) {
 
 export class CanvasRender {
   ctx: CanvasRenderingContext2D;
-  cacheImage: {[n: string]: HTMLImageElement} = {};
+  cacheImage: { [n: string]: HTMLImageElement } = {};
   boxMap: BoxMapType[] = [];
   canvas: HTMLCanvasElement;
   // boundary = {minx: 0, miny: 0, maxx: 0, maxy: 0};
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
-    this.ctx = canvas.getContext("2d")!;
+    this.ctx = canvas.getContext('2d')!;
   }
   clear() {
     this.ctx.globalAlpha = 1;
@@ -137,23 +137,23 @@ export class CanvasRender {
   async draw(op: CanvasDrawType) {
     this.resetStyle();
     switch (op.type) {
-      case "Circle":
+      case 'Circle':
         this.drawCircle(op);
         break;
 
-      case "Text":
+      case 'Text':
         this.drawText(op);
         break;
-      case "Polygon":
+      case 'Polygon':
         this.drawPolygon(op);
         break;
-      case "Line":
+      case 'Line':
         this.drawLine(op);
         break;
-      case "Rect":
+      case 'Rect':
         this.drawRect(op);
         break;
-      case "Image":
+      case 'Image':
         await this.drawImage(op);
         break;
     }
@@ -164,7 +164,7 @@ export class CanvasRender {
         resolve(this.cacheImage[url]);
       } else {
         const image = new Image();
-        image.crossOrigin = "*";
+        image.crossOrigin = '*';
         image.src = url;
         // image.naturalHeight;
         // image.naturalWidth;
@@ -202,8 +202,8 @@ export class CanvasRender {
   }
   setLineStyle(style: LineStyle) {
     if (style.lineWidth && style.lineColor) {
-      this.ctx.lineCap = "round";
-      this.ctx.lineJoin = "round";
+      this.ctx.lineCap = 'round';
+      this.ctx.lineJoin = 'round';
       this.ctx.lineWidth = style.lineWidth;
       this.ctx.strokeStyle = style.lineColor;
       if (style.dashWidth) {
@@ -246,7 +246,7 @@ export class CanvasRender {
       data.isAction &&
       ((end[0] >= 0 && end[1] >= 0) || (start[0] <= this.canvas.width && start[1] <= this.canvas.height))
     ) {
-      const item = {start, end, data, id: data.id};
+      const item = { start, end, data, id: data.id };
 
       this.boxMap.push(item);
     }
@@ -344,9 +344,9 @@ export class CanvasRender {
     const y = op.offsetY ? op.pos[1] + op.offsetY : op.pos[1];
     const style = op.style;
     const fontSize = style.fontSize || 14;
-    this.ctx.font = `${fontSize}px ${style.fontFamily || "serif"}`;
-    this.ctx.textAlign = "center";
-    this.ctx.textBaseline = "middle";
+    this.ctx.font = `${fontSize}px ${style.fontFamily || 'Sans-serif'}`;
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
 
     const width = this.ctx.measureText(op.text).width;
 
@@ -372,12 +372,12 @@ export class CanvasRender {
       const item = this.boxMap[i];
       if (x >= item.start[0] && y >= item.start[1] && x <= item.end[0] && y <= item.end[1]) {
         const type = item.data.type;
-        if (type === "Circle") {
+        if (type === 'Circle') {
           const d = Math.pow(x - item.data.center[0], 2) + Math.pow(y - item.data.center[1], 2);
           if (Math.sqrt(d) <= item.data.radius) {
             objs.push(item);
           }
-        } else if (type === "Polygon" || type === "Line") {
+        } else if (type === 'Polygon' || type === 'Line') {
           if (isPointInPolygon([x, y], item.data.path)) {
             objs.push(item);
           }
