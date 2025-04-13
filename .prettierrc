@@ -1,0 +1,18 @@
+{
+  "eslintIntegration": true,
+  "stylelintIntegration": true,
+  "vueIndentScriptAndStyle": true,
+  "printWidth": 120,
+  "tabWidth": 2,
+  "singleQuote": true,
+  "semi": true,
+  "trailingComma": "none",
+  "overrides": [
+    {
+      "files": ".prettierrc",
+      "options": {
+        "parser": "json"
+      }
+    }
+  ]
+}

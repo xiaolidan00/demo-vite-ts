@@ -38,7 +38,7 @@ export type TextStyle = {
   //   textBaseline: 'top' | 'middle' | 'bottom';
 } & ShapeStyle;
 export type CommonCanvasType = {
-  id?: string | number;
+  id: string | number;
   name?: string;
   isAction?: boolean;
   zIndex?: number;
@@ -84,14 +84,8 @@ export type CanvasImage = CommonCanvasType & {
   offsetX?: number;
   offsetY?: number;
 };
-export type CanvasDrawType =
-  | CanvasImage
-  | CanvasRect
-  | CanvasText
-  | CanvasCircle
-  | CanvasPolygon
-  | CanvasLine;
-type BoxMapType = {
+export type CanvasDrawType = CanvasImage | CanvasRect | CanvasText | CanvasCircle | CanvasPolygon | CanvasLine;
+export type BoxMapType = {
   start: PxXY;
   end: PxXY;
   data: CanvasDrawType;
@@ -128,7 +122,6 @@ export class CanvasRender {
   cacheImage: { [n: string]: HTMLImageElement } = {};
   boxMap: BoxMapType[] = [];
   canvas: HTMLCanvasElement;
-  // boundary = {minx: 0, miny: 0, maxx: 0, maxy: 0};
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d')!;
@@ -164,23 +157,7 @@ export class CanvasRender {
         break;
     }
   }
-  loadImage(url: string) {
-    return new Promise<HTMLImageElement>((resolve) => {
-      if (this.cacheImage[url]) {
-        resolve(this.cacheImage[url]);
-      } else {
-        const image = new Image();
-        image.crossOrigin = '*';
-        image.src = url;
-        // image.naturalHeight;
-        // image.naturalWidth;
-        image.onload = () => {
-          this.cacheImage[url] = image;
-          resolve(image);
-        };
-      }
-    });
-  }
+
   setShadowBlur(sb: ShadowBlurStyle) {
     if (sb.shadowBlur) {
       this.ctx.shadowBlur = sb.shadowBlur;
@@ -229,7 +206,25 @@ export class CanvasRender {
     this.ctx.globalAlpha = 1;
     this.ctx.lineWidth = 0;
   }
-
+  loadImage(url: string) {
+    return new Promise<HTMLImageElement>((resolve) => {
+      //缓存图片
+      if (this.cacheImage[url]) {
+        resolve(this.cacheImage[url]);
+      } else {
+        //加载图片
+        const image = new Image();
+        image.crossOrigin = '*';
+        image.src = url;
+        // image.naturalHeight;
+        // image.naturalWidth;
+        image.onload = () => {
+          this.cacheImage[url] = image;
+          resolve(image);
+        };
+      }
+    });
+  }
   async drawImage(op: CanvasImage) {
     const image = await this.loadImage(op.url);
     const w = op.width ? Math.ceil(op.width * 0.5) : Math.ceil(image.naturalWidth * 0.5);
@@ -244,11 +239,11 @@ export class CanvasRender {
     this.setBoxMap([x - w, y - h], [x + w, y + h], op);
   }
   setBoxMap(start: PxXY, end: PxXY, data: CanvasDrawType) {
-    // this.boundary.minx = Math.min(this.boundary.minx, start[0]);
-    // this.boundary.miny = Math.min(this.boundary.miny, start[1]);
-    // this.boundary.maxx = Math.max(this.boundary.maxx, end[0]);
-    // this.boundary.maxy = Math.max(this.boundary.maxy, end[1]);
-    if (data.isAction) {
+    //收集形状元素范围，用于后续事件监听
+    if (
+      data.isAction &&
+      ((end[0] >= 0 && end[1] >= 0) || (start[0] <= this.canvas.width && start[1] <= this.canvas.height))
+    ) {
       const item = { start, end, data, id: data.id };
 
       this.boxMap.push(item);
@@ -261,6 +256,7 @@ export class CanvasRender {
     this.ctx.arc(x, y, op.radius, 0, PI2);
 
     const style = op.style;
+    const lineWidth = style.lineWidth || 0;
     if (style.fillColor) {
       this.setShapeStyle(style);
       this.ctx.fill();
@@ -269,7 +265,11 @@ export class CanvasRender {
       this.setLineStyle(style);
       this.ctx.stroke();
     }
-    this.setBoxMap([x - op.radius, y - op.radius], [x + op.radius, y + op.radius], op);
+    this.setBoxMap(
+      [x - op.radius - lineWidth, y - op.radius - lineWidth],
+      [x + op.radius + lineWidth, y + op.radius + lineWidth],
+      op
+    );
   }
   drawRect(op: CanvasRect) {
     const startX = Math.min(op.start[0], op.end[0]);
@@ -282,7 +282,9 @@ export class CanvasRender {
     this.ctx.lineTo(endX, endY);
     this.ctx.lineTo(startX, endY);
     this.ctx.closePath();
+
     const style = op.style;
+    const lineWidth = style.lineWidth || 0;
     if (style.fillColor) {
       this.setShapeStyle(style);
       this.ctx.fill();
@@ -292,7 +294,7 @@ export class CanvasRender {
       this.ctx.stroke();
     }
 
-    this.setBoxMap([startX, startY], [endX, endY], op);
+    this.setBoxMap([startX - lineWidth, startY - lineWidth], [endX + lineWidth, endY + lineWidth], op);
   }
   drawPolygonOrLine(op: CanvasPolygon | CanvasLine) {
     this.ctx.beginPath();
@@ -317,7 +319,12 @@ export class CanvasRender {
       bound.maxy = Math.max(bound.maxy, item[1]);
     }
     this.ctx.closePath();
-    this.setBoxMap([bound.minx, bound.miny], [bound.maxx, bound.maxy], op);
+    const lineWidth = op.style.lineWidth || 0;
+    this.setBoxMap(
+      [bound.minx - lineWidth, bound.miny - lineWidth],
+      [bound.maxx + lineWidth, bound.maxy + lineWidth],
+      op
+    );
   }
   drawPolygon(op: CanvasPolygon) {
     this.drawPolygonOrLine(op);
@@ -347,12 +354,12 @@ export class CanvasRender {
     const y = op.offsetY ? op.pos[1] + op.offsetY : op.pos[1];
     const style = op.style;
     const fontSize = style.fontSize || 14;
-    this.ctx.font = `${fontSize}px ${style.fontFamily || 'serif'}`;
+    this.ctx.font = `${fontSize}px ${style.fontFamily || 'Sans-serif'}`;
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
 
     const width = this.ctx.measureText(op.text).width;
-
+    const lineWidth = style.lineWidth || 0;
     if (style.fillColor) {
       this.setShapeStyle(style);
       this.ctx.fillText(op.text, x, y);
@@ -364,28 +371,30 @@ export class CanvasRender {
 
     const w = Math.ceil(width * 0.5);
     const h = Math.ceil(fontSize * 0.5);
-    this.setBoxMap([x - w, y - h], [x + w, y + h], op);
+    this.setBoxMap([x - w - lineWidth, y - h - lineWidth], [x + w + lineWidth, y + h + lineWidth], op);
   }
   checkShapes(x: number, y: number) {
     x = Math.floor(x);
     y = Math.floor(y);
-    const objs: BoxMapType[] = [];
-
+    const objs: CanvasDrawType[] = [];
+    //遍历可视范围内形状，判断是否在点击坐标上
     for (let i = 0; i < this.boxMap.length; i++) {
       const item = this.boxMap[i];
       if (x >= item.start[0] && y >= item.start[1] && x <= item.end[0] && y <= item.end[1]) {
         const type = item.data.type;
+        //圆形 点到圆心距离在半径内
         if (type === 'Circle') {
           const d = Math.pow(x - item.data.center[0], 2) + Math.pow(y - item.data.center[1], 2);
           if (Math.sqrt(d) <= item.data.radius) {
-            objs.push(item);
+            objs.push(item.data);
           }
+          //多边形和折线，点通过射线算法是否在多边形内
         } else if (type === 'Polygon' || type === 'Line') {
           if (isPointInPolygon([x, y], item.data.path)) {
-            objs.push(item);
+            objs.push(item.data);
           }
         } else {
-          objs.push(item);
+          objs.push(item.data);
         }
       }
     }
