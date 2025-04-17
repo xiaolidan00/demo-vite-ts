@@ -52,6 +52,7 @@ export type CanvasPolygon = CommonCanvasType & {
 export type CanvasLine = CommonCanvasType & {
   type: 'Line';
   path: PxXY[];
+  isClose?: boolean;
   style: LineStyle;
 };
 
@@ -332,7 +333,8 @@ export class CanvasRender {
       bound.maxx = Math.max(bound.maxx, item[0]);
       bound.maxy = Math.max(bound.maxy, item[1]);
     }
-    this.ctx.closePath();
+    //是否封闭图形
+    if (op.type === 'Polygon' || (op.type === 'Line' && op.isClose)) this.ctx.closePath();
     return bound;
   }
   //绘制多边形
