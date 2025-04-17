@@ -42,6 +42,7 @@ export type CommonCanvasType = {
   name?: string;
   isAction?: boolean;
   zIndex?: number;
+  hidden?: boolean;
 };
 export type CanvasPolygon = CommonCanvasType & {
   type: 'Polygon';
@@ -135,6 +136,7 @@ export class CanvasRender {
 
   async draw(op: CanvasDrawType) {
     this.resetStyle();
+    if (op.hidden) return;
     switch (op.type) {
       case 'Circle':
         this.drawCircle(op);
@@ -226,6 +228,7 @@ export class CanvasRender {
     });
   }
   async drawImage(op: CanvasImage) {
+    if (op.hidden) return;
     const image = await this.loadImage(op.url);
     const w = op.width ? Math.ceil(op.width * 0.5) : Math.ceil(image.naturalWidth * 0.5);
     const h = op.height ? Math.ceil(op.height * 0.5) : Math.ceil(image.naturalHeight * 0.5);
@@ -240,6 +243,8 @@ export class CanvasRender {
     }
   }
   setBoxMap(start: PxXY, end: PxXY, data: CanvasDrawType) {
+    //像素小于1不绘制
+    if (end[0] - start[0] < 1 || end[1] - start[1] < 1) return false;
     //收集在可视范围内的形状元素，用于后续事件监听
     if (
       data.isAction &&
@@ -253,6 +258,8 @@ export class CanvasRender {
     return false;
   }
   drawCircle(op: CanvasCircle) {
+    //隐藏
+    if (op.hidden) return;
     this.ctx.beginPath();
     const x = op.center[0];
     const y = op.center[1];
@@ -278,6 +285,7 @@ export class CanvasRender {
     }
   }
   drawRect(op: CanvasRect) {
+    if (op.hidden) return;
     const startX = Math.min(op.start[0], op.end[0]);
     const startY = Math.min(op.start[1], op.end[1]);
     const endX = Math.max(op.start[0], op.end[0]);
@@ -329,6 +337,7 @@ export class CanvasRender {
   }
   //绘制多边形
   drawPolygon(op: CanvasPolygon) {
+    if (op.hidden) return;
     const bound = this.drawPolygonOrLine(op);
     const style = op.style;
     const lineWidth = style.lineWidth || 0;
@@ -351,6 +360,7 @@ export class CanvasRender {
   }
   //绘制折线
   drawLine(op: CanvasLine) {
+    if (op.hidden) return;
     const bound = this.drawPolygonOrLine(op);
     const style = op.style;
     const lineWidth = style.lineWidth || 0;
@@ -369,6 +379,7 @@ export class CanvasRender {
   }
 
   drawText(op: CanvasText) {
+    if (op.hidden) return;
     this.ctx.beginPath();
     const x = op.offsetX ? op.pos[0] + op.offsetX : op.pos[0];
     const y = op.offsetY ? op.pos[1] + op.offsetY : op.pos[1];
