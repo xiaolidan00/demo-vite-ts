@@ -1,97 +1,59 @@
-class CustomLayout extends HTMLElement {
-  tempslot?: HTMLSlotElement;
+// const template = document.createElement('template');
+// template.innerHTML = /*html*/ `<h1>Top</h1>
+// <h2>Center</h2>
+// <h3>Bottom</h3>`;
+// document.body.appendChild(template);
+// //复制template的内容
+// const clone = document.importNode(template.content, true);
+// document.body.appendChild(clone);
+// //添加复制的template的内容
+// document.body.appendChild(template.content.cloneNode(true));
+
+class CustomInfoItem extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
+
     const shadow = this.shadowRoot!;
 
-    shadow.innerHTML = /*html*/ `
-      <style>
-      :host{
-      display:flex;
-      } 
-      :host>div{
-      flex:1;
-      }
-      .left{
-      text-align:left;
-      }
-      .center{
-      text-align:center;
-      }
-      .right{
-      text-align:right;
-      } 
-      
-      ::slotted(*){
-      font-weight:bold;
-      }
-      ::slotted(h1){
-      background:pink;     
-      }
-      ::slotted(.border){
-        color:green
-      }
-      </style>
-      <div class='left'><slot name='left'></slot></div>
-      <div class='center'><slot name='center'></slot></div>
-      <div class='right'><slot name='right'></slot></div> `;
+    shadow.innerHTML = /*html*/ `<div style="line-height:32px;">
+    <label id="label" style="color:gray;margin-right:10px">
+    </label>
+    <span id="value" style="color:blue;"> 
+    <slot name="more"></slot>
+    </span></div>`;
 
-    this.addEventListener('click', this.addSlot.bind(this));
-  }
-  onSlotChange(ev: Event) {
-    // console.log('🚀 ~ index.ts ~ CustomLayout ~ onSlotChange ~ ev:', ev);
-  }
-  addSlot() {
-    //判断<slot>是否被添加
-    if (!this.tempslot) {
-      const shadow = this.shadowRoot!;
-      //动态添加<slot>
-      const tempslot = document.createElement('slot');
-      tempslot.name = 'tempSlot1';
-      this.tempslot = tempslot;
-      shadow.appendChild(tempslot);
-      //监听<slot>属性的变化
-      tempslot.addEventListener('slotchange', this.onSlotChange.bind(this));
-      console.log(this.tempslot!.assignedElements().map((el) => el.outerHTML));
-      console.log(this.tempslot!.assign());
-      console.log(this.tempslot!.assignedNodes());
-    } else {
-      //改变<slot>的name属性
-      this.tempslot.name = this.tempslot.name == 'tempSlot' ? 'tempSlot1' : 'tempSlot';
+    const label = shadow.querySelector('#label')!;
+    const labelTemplate = document.querySelector('#label-template');
+
+    if (labelTemplate) label.appendChild((labelTemplate as HTMLTemplateElement).content.cloneNode(true));
+
+    const value = shadow.querySelector('#value')!;
+
+    const valueTemplate = document.querySelector('#value-template');
+    console.log('🚀 ~ index.ts ~ CustomInfoItem ~ constructor ~ valueTemplate:', valueTemplate);
+    if (valueTemplate) {
+      value.appendChild((valueTemplate as HTMLTemplateElement).content.cloneNode(true));
     }
   }
 }
-customElements.define('custom-layout', CustomLayout);
-// const leftSlot = document.createElement('slot');
-// leftSlot.name = 'left';
-// shadow.appendChild(leftSlot);
 
-// const centerSlot = document.createElement('slot');
-// centerSlot.name = 'center';
-// shadow.appendChild(centerSlot);
+customElements.define('custom-info-item', CustomInfoItem);
 
-// const rightSlot = document.createElement('slot');
-// rightSlot.name = 'right';
-// shadow.appendChild(rightSlot);
+const template = document.createElement('template');
+template.id = 'label-template';
+template.innerHTML = 'Hello';
+document.body.appendChild(template);
 
-const content = document.createElement('div');
-content.innerHTML = /*html*/ `
-<style>
-.border{
-  display:inline-block;
-  border:solid 1px blue;
-  padding:10px;
-}
-#centerBody{
-  background:yellow;
-}
-</style>
-<custom-layout>
-    <span slot='left' class="border">Left</span>
-    <div slot='center' id='centerBody'>Center</div>
-    <h1 slot='right'>Right</h1>
-    <h1 slot='tempSlot1' style="color:red">tempSlot1<strong>HAHAHA</strong></h1> 
-     <h1 slot='tempSlot' style="color:orange">Hello</h1>
-</custom-layout>`;
-document.body.appendChild(content);
+const template1 = document.createElement('template');
+template1.id = 'value-template';
+template1.innerHTML = 'World';
+document.body.appendChild(template1);
+
+const infoItem = new CustomInfoItem();
+document.body.appendChild(infoItem);
+
+const template2 = document.createElement('template');
+
+template2.innerHTML = '<div slot="more" >HAHAHAHAHA</div>';
+infoItem.appendChild(template2);

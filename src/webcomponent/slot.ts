@@ -40,8 +40,8 @@ class CustomLayout extends HTMLElement {
     this.addEventListener('click', this.addSlot.bind(this));
   }
   onSlotChange(ev: Event) {
+    console.log(this.tempslot!.assignedElements().map((el) => el.outerHTML));
     console.log('🚀 ~ index.ts ~ CustomLayout ~ onSlotChange ~ ev:', ev);
-    (ev.target as HTMLSlotElement).assignedElements({ flatten: true });
   }
   addSlot() {
     //判断<slot>是否被添加
@@ -54,7 +54,6 @@ class CustomLayout extends HTMLElement {
       shadow.appendChild(tempslot);
       //监听<slot>属性的变化
       tempslot.addEventListener('slotchange', this.onSlotChange.bind(this));
-      tempslot.assignedElements({ flatten: true });
     } else {
       //改变<slot>的name属性
       this.tempslot.name = this.tempslot.name == 'tempSlot' ? 'tempSlot1' : 'tempSlot';
@@ -90,7 +89,7 @@ content.innerHTML = /*html*/ `
     <span slot='left' class="border">Left</span>
     <div slot='center' id='centerBody'>Center</div>
     <h1 slot='right'>Right</h1>
-    <h1 slot='tempSlot1' style="color:red">tempSlot1</h1> 
+    <h1 slot='tempSlot1' style="color:red">tempSlot1<strong>HAHAHA</strong></h1> 
      <h1 slot='tempSlot' style="color:orange">Hello</h1>
 </custom-layout>`;
 document.body.appendChild(content);

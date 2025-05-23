@@ -84,12 +84,12 @@ class CustomTabs extends HTMLElement {
         //active变化改变激活tab
         const beforeActive = this.container.querySelector('[part="tab active"]');
         if (beforeActive) {
-          beforeActive.setAttribute('part', 'tab');
+          beforeActive.part = 'tab';
         }
 
         const child = this.container.children[active];
         if (child) {
-          child.setAttribute('part', 'tab active');
+          child.part = 'tab active';
         }
       }
     }

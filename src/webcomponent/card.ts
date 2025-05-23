@@ -5,7 +5,7 @@ class CustomCard extends HTMLElement {
 
     const shadow = this.shadowRoot!;
     shadow.innerHTML = /*html*/ `<div style="display:inline-block;border:solid 1px rgba(0,0,0,0.1);padding:20px;box-shadow:0 0 10px #ccc">
-   <slot></slot> </div>`;
+   <slot>No Data</slot> </div>`;
   }
 }
 customElements.define('custom-card', CustomCard);
