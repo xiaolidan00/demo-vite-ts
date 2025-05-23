@@ -1,124 +1,97 @@
-class CustomInput extends HTMLElement {
-  static formAssociated = true;
-  internals: ElementInternals;
-  input: HTMLInputElement;
-  num: HTMLSpanElement;
-  label: HTMLLabelElement;
+class CustomLayout extends HTMLElement {
+  tempslot?: HTMLSlotElement;
   constructor() {
     super();
-    this.internals = this.attachInternals();
-    this.attachShadow({ mode: 'open', delegatesFocus: true });
+    this.attachShadow({ mode: 'open' });
     const shadow = this.shadowRoot!;
 
-    shadow.innerHTML = `
-  <style>
-  *{
-  box-sizing:border-box;
-  }
-  :host{
-  display:inline-block;
-  }
-  .input-wrapper{
-  display:inline-flex;
-  background:white;
-  
-  border-radius:4px;
-  height:32px;
-  border:solid 1px gray;
-  align-items:center;
-  }
-  .input-wrapper:focus{
-  border:solid 1px blue;
-  }
-  input{
-  border:none;
-  background:transparent;
-  padding-left:10px;
-  height:30px;
-  outline:none;
-  display:inline-block;
-  width:200px;
-  }
-  .num{
-  display:inline-block;
-  font-size:12px;
-  color:gray;
-  width:20px;
-  } 
-  :host:invalid .input-wrapper{
-  border-color:red;
-  } 
-  :host([required="true"]) label::before{
-display:inline-block;
-content:'*';
-color:red;
-font-size:14px;
-  }
-  </style>  
-  <label>${this.getAttribute('label') || ''}</label>
-  <div class="input-wrapper"> 
-  <input type='text' maxlength="${this.getAttribute('maxlength') || ''}"  /> 
-  <span class='num'></span>
-   </div>
- `;
-    this.label = shadow.querySelector('label') as HTMLLabelElement;
-    this.input = shadow.querySelector('input') as HTMLInputElement;
-    this.num = shadow.querySelector('.num') as HTMLSpanElement;
-
-    this.input.oninput = () => {
-      const v = this.input.value;
-      if (this.num) this.num.innerHTML = v.length + '';
-      this.internals.setFormValue(v);
-      this.validate();
-    };
-  }
-  validate() {
-    const validityState = this.internals.validity;
-
-    if (this.input.value === '') {
-      this.internals.setValidity({ valueMissing: true }, '请输入' + (this.getAttribute('label') || ''));
-    } else {
-      this.internals.setValidity({});
-    }
-
-    this.internals.reportValidity();
-  }
-  get value() {
-    return this.input?.value || '';
-  }
-
-  setInputVal(v: string) {
-    if (this.input) this.input.value = v;
-    if (this.num) this.num.innerHTML = v.length + '';
-    this.internals.setFormValue(v);
-    this.validate();
-  }
-  set value(v: string) {
-    this.setInputVal(v);
-  }
-
-  static observedAttributes = ['maxlength', 'required', 'placeholder', 'label'];
-  attributeChangedCallback(name: string, oldValue: string, newValue: string) {
-    console.log('🚀 ~ index.ts ~ CustomInput ~ attributeChangedCallback ~ name:', name);
-    if (name === 'required') {
-      if (newValue === 'true') {
-        this.internals.setValidity({ valueMissing: true }, '请输入');
-      } else {
-        this.internals.setValidity({});
+    shadow.innerHTML = /*html*/ `
+      <style>
+      :host{
+      display:flex;
+      } 
+      :host>div{
+      flex:1;
       }
-    } else if (name == 'label') {
-      this.label.innerHTML = newValue;
+      .left{
+      text-align:left;
+      }
+      .center{
+      text-align:center;
+      }
+      .right{
+      text-align:right;
+      } 
+      
+      ::slotted(*){
+      font-weight:bold;
+      }
+      ::slotted(h1){
+      background:pink;     
+      }
+      ::slotted(.border){
+        color:green
+      }
+      </style>
+      <div class='left'><slot name='left'></slot></div>
+      <div class='center'><slot name='center'></slot></div>
+      <div class='right'><slot name='right'></slot></div> `;
+
+    this.addEventListener('click', this.addSlot.bind(this));
+  }
+  onSlotChange(ev: Event) {
+    // console.log('🚀 ~ index.ts ~ CustomLayout ~ onSlotChange ~ ev:', ev);
+  }
+  addSlot() {
+    //判断<slot>是否被添加
+    if (!this.tempslot) {
+      const shadow = this.shadowRoot!;
+      //动态添加<slot>
+      const tempslot = document.createElement('slot');
+      tempslot.name = 'tempSlot1';
+      this.tempslot = tempslot;
+      shadow.appendChild(tempslot);
+      //监听<slot>属性的变化
+      tempslot.addEventListener('slotchange', this.onSlotChange.bind(this));
+      console.log(this.tempslot!.assignedElements().map((el) => el.outerHTML));
+      console.log(this.tempslot!.assign());
+      console.log(this.tempslot!.assignedNodes());
+    } else {
+      //改变<slot>的name属性
+      this.tempslot.name = this.tempslot.name == 'tempSlot' ? 'tempSlot1' : 'tempSlot';
     }
   }
 }
-customElements.define('custom-input', CustomInput);
-{
-  const cinput = new CustomInput();
-  cinput.setAttribute('label', '数值');
-  cinput.setAttribute('required', 'true');
-  cinput.setAttribute('maxlength', 'true');
-  cinput.value = '1234';
-  document.body.appendChild(cinput);
+customElements.define('custom-layout', CustomLayout);
+// const leftSlot = document.createElement('slot');
+// leftSlot.name = 'left';
+// shadow.appendChild(leftSlot);
+
+// const centerSlot = document.createElement('slot');
+// centerSlot.name = 'center';
+// shadow.appendChild(centerSlot);
+
+// const rightSlot = document.createElement('slot');
+// rightSlot.name = 'right';
+// shadow.appendChild(rightSlot);
+
+const content = document.createElement('div');
+content.innerHTML = /*html*/ `
+<style>
+.border{
+  display:inline-block;
+  border:solid 1px blue;
+  padding:10px;
 }
-const inpuut = document.createElement('input');
-inpuut.required;
+#centerBody{
+  background:yellow;
+}
+</style>
+<custom-layout>
+    <span slot='left' class="border">Left</span>
+    <div slot='center' id='centerBody'>Center</div>
+    <h1 slot='right'>Right</h1>
+    <h1 slot='tempSlot1' style="color:red">tempSlot1<strong>HAHAHA</strong></h1> 
+     <h1 slot='tempSlot' style="color:orange">Hello</h1>
+</custom-layout>`;
+document.body.appendChild(content);

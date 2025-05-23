@@ -47,6 +47,12 @@ if (!window.customElements.get('hello-world')) {
 }
 {
   const content = document.createElement('div');
+  content.innerHTML = '<hello-world color="blue" size="large">PPPPP</hello-world>';
+  document.body.appendChild(content);
+}
+
+{
+  const content = document.createElement('div');
   content.innerHTML = '<p is="hello-world" color="blue" size="large">PPPPP</p>';
   document.body.appendChild(content);
 }
