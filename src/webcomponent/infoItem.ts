@@ -12,40 +12,48 @@
 class CustomInfoItem extends HTMLElement {
   constructor() {
     super();
-    // const template = document.createElement('template');
-    // template.shadowRootMode = 'open';
-    // this.appendChild(template);
-    // template.innerHTML = /*html*/ `<div style="line-height:32px;">
-    // <label style="color:gray;margin-right:10px">
-    // <slot name="label"></slot>：
-    // </label>
-    // <span style="color:blue;">
-    // <slot name="value"></slot>
-    // </span></div>`;
+    this.attachShadow({ mode: 'open' });
 
-    this.innerHTML = /*html*/ `<template shadowrootmode="open">
-   <div style="line-height:32px;">
-    <label style="color:gray;margin-right:10px">
-    <slot name="label"></slot>：
+    const shadow = this.shadowRoot!;
+
+    shadow.innerHTML = /*html*/ `<div style="line-height:32px;">
+    <label id="label" style="color:gray;margin-right:10px">
     </label>
-    <span style="color:blue;">
-    <slot name="value"></slot>
-    </span></div>
-    </template>`;
+    <span id="value" style="color:blue;"> 
+    <slot name="more"></slot>
+    </span></div>`;
+
+    const label = shadow.querySelector('#label')!;
+    const labelTemplate = document.querySelector('#label-template');
+
+    if (labelTemplate) label.appendChild((labelTemplate as HTMLTemplateElement).content.cloneNode(true));
+
+    const value = shadow.querySelector('#value')!;
+
+    const valueTemplate = document.querySelector('#value-template');
+    console.log('🚀 ~ index.ts ~ CustomInfoItem ~ constructor ~ valueTemplate:', valueTemplate);
+    if (valueTemplate) {
+      value.appendChild((valueTemplate as HTMLTemplateElement).content.cloneNode(true));
+    }
   }
 }
 
 customElements.define('custom-info-item', CustomInfoItem);
 
-// const infoItem = new CustomInfoItem();
-// document.body.appendChild(infoItem);
+const template = document.createElement('template');
+template.id = 'label-template';
+template.innerHTML = 'Hello';
+document.body.appendChild(template);
 
-// const label = document.createElement('span');
-// label.slot = 'label';
-// label.innerHTML = '国庆日期';
-// infoItem.appendChild(label);
+const template1 = document.createElement('template');
+template1.id = 'value-template';
+template1.innerHTML = 'World';
+document.body.appendChild(template1);
 
-// const value = document.createElement('span');
-// value.slot = 'value';
-// value.innerHTML = '十月一号';
-// infoItem.appendChild(value);
+const infoItem = new CustomInfoItem();
+document.body.appendChild(infoItem);
+
+const template2 = document.createElement('template');
+
+template2.innerHTML = '<div slot="more" >HAHAHAHAHA</div>';
+infoItem.appendChild(template2);

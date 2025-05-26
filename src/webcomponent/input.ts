@@ -1,15 +1,15 @@
 class CustomInput extends HTMLElement {
-  //表单元素
+  //开启关联表单元素
   static formAssociated = true;
   internals: ElementInternals;
   input: HTMLInputElement;
   num: HTMLSpanElement;
-  label: HTMLLabelElement;
   constructor() {
     super();
-    this.internals = this.attachInternals();
     this.attachShadow({ mode: 'open', delegatesFocus: true });
     const shadow = this.shadowRoot!;
+    //返回一个ElementInternals对象，允许自定义元素完全参与HTML表单
+    this.internals = this.attachInternals();
 
     shadow.innerHTML = /*html*/ `
   <style>
@@ -20,63 +20,49 @@ class CustomInput extends HTMLElement {
   display:inline-block;
   }
   .input-wrapper{
-  display:inline-flex;
-  background:white;
-  
+  display:inline-flex; 
   border-radius:4px;
   height:32px;
   border:solid 1px gray;
   align-items:center;
   }
-  .input-wrapper:focus{
-  border:solid 1px blue;
-  }
   input{
   border:none;
   background:transparent;
-  padding-left:10px;
+  padding:0 10px;
   height:30px;
   outline:none;
-  display:inline-block;
-  width:200px;
+  display:inline-block;  
   }
   .num{
   display:inline-block;
   font-size:12px;
-  color:gray;
-  width:20px;
+  color:gray; 
   } 
-  :host:invalid .input-wrapper{  
-  display:inline-block;
-  content:'不能为空';
-  position:absolute;
-  z-index:2;
-  } 
-  :host([required="true"]) label::before{
-display:inline-block;
-content:'*';
-color:red;
-font-size:14px;
+  .num.error{
+    color:red;
   }
-  </style>  
-  <label>${this.getAttribute('label') || ''}</label>
+  </style>
   <div class="input-wrapper"> 
   <input type='text' maxlength="${this.getAttribute('maxlength') || ''}"  placeholder="${
       this.getAttribute('placeholder') || ''
     }" /> 
   <span class='num'></span>
-   </div>
- `;
-    this.label = shadow.querySelector('label') as HTMLLabelElement;
+</div>`;
+
     this.input = shadow.querySelector('input') as HTMLInputElement;
     this.num = shadow.querySelector('.num') as HTMLSpanElement;
     this.setInputVal(this.getAttribute('value') || '');
     this.input.oninput = () => {
       const v = this.input.value;
-      if (this.num) this.num.innerHTML = v.length + '';
+      this.updateNum();
       this.internals.setFormValue(v);
       this.validate();
     };
+  }
+  connectedCallback() {
+    //获取关联表单
+    console.log(this.internals.form);
   }
   validate() {
     if (this.input.value === '') {
@@ -90,10 +76,22 @@ font-size:14px;
   get value() {
     return this.input?.value || '';
   }
+  updateNum() {
+    if (this.num) {
+      const v = this.input.value;
+      const len = Number(this.getAttribute('maxLength')) || 0;
+      this.num.innerHTML = `${v.length}/${len}`;
+      if (v.length <= len) {
+        this.num.classList.remove('error');
+      } else {
+        this.num.classList.add('error');
+      }
+    }
+  }
 
   setInputVal(v: string) {
     if (this.input) this.input.value = v;
-    if (this.num) this.num.innerHTML = v.length + '';
+    this.updateNum();
     this.internals.setFormValue(v);
     this.validate();
   }
@@ -101,12 +99,9 @@ font-size:14px;
     this.setInputVal(v);
   }
 
-  static observedAttributes = ['maxLength', 'label', 'placeholder', 'required'];
+  static observedAttributes = ['maxLength', 'placeholder', 'required'];
   attributeChangedCallback(name: string, oldValue: string, newValue: string) {
     switch (name) {
-      case 'label':
-        this.label.innerHTML = newValue;
-        break;
       case 'required':
         this.input.required = newValue === 'true';
         break;
@@ -116,6 +111,7 @@ font-size:14px;
       case 'maxLength':
         const v = Number(newValue);
         if (v > 0) this.input.maxLength = v;
+        this.updateNum();
         break;
     }
   }
@@ -123,9 +119,9 @@ font-size:14px;
 customElements.define('custom-input', CustomInput);
 {
   const cinput = new CustomInput();
-  cinput.setAttribute('label', '数值');
+  cinput.setAttribute('placeholder', '请输入数值');
   cinput.setAttribute('required', 'true');
-  cinput.setAttribute('maxlength', 'true');
+  cinput.setAttribute('maxLength', '10');
   cinput.value = '1234';
   document.body.appendChild(cinput);
 }
