@@ -125,7 +125,7 @@ class CustomInput extends HTMLElement {
       this.wrap.classList.add('error');
     }
   }
-  static observedAttributes = ['maxlength', 'placeholder', 'required', 'name'];
+  static observedAttributes = ['maxlength', 'placeholder', 'required'];
   attributeChangedCallback(name: string, oldValue: string, newValue: string) {
     switch (name) {
       case 'placeholder':

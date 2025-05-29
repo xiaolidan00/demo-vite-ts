@@ -1,4 +1,4 @@
-class CustomCheckbox extends HTMLElement {
+class CustomSwitch extends HTMLElement {
   internals: ElementInternals;
   //开启关联表单元素
   static formAssociated = true;
@@ -15,31 +15,30 @@ class CustomCheckbox extends HTMLElement {
         box-sizing:border-box;
       }
   :host {
-    display: block;
+    display: inline-flex;
     height:20px;
-    width:20px;
+    width:40px;
     background:white;   
-    border-radius:3px;
-    overflow:hidden; 
-     border:solid 1px black;
+    border-radius:10px;
+    overflow:hidden;      
+     padding:2px;
+     background:gray;
   }
   :host::before {
     display:flex;
     align-items:center;
-    justify-content:center;
-    height:100%;
-    width:100%;
-    content: "";    
+    justify-content:flex-start;
+    height:16px;
+    width:16px;
+    border-radius:50%;
+    content: "";  
+    background:white;
   }
   :host(:state(checked)){
   background:dodgerblue;
-  border:solid 1px dodgerblue;
-  }
-  :host(:state(checked))::before {
-    content: "V";
-    color:white;
-    font-size:14px;   
-  }`);
+  justify-content:flex-end;
+  transition:all 0.5s ease;
+  } `);
     shadow.adoptedStyleSheets = [sheet];
     this.addEventListener('click', this.onClick.bind(this));
   }
@@ -70,6 +69,6 @@ class CustomCheckbox extends HTMLElement {
   }
 }
 
-customElements.define('custom-checkbox', CustomCheckbox);
-const checkbox = new CustomCheckbox();
-document.body.appendChild(checkbox);
+customElements.define('custom-switch', CustomSwitch);
+const switchEl = new CustomSwitch();
+document.body.appendChild(switchEl);

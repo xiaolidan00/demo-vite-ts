@@ -1,13 +1,15 @@
-// const template = document.createElement('template');
-// template.innerHTML = /*html*/ `<h1>Top</h1>
-// <h2>Center</h2>
-// <h3>Bottom</h3>`;
-// document.body.appendChild(template);
-// //复制template的内容
-// const clone = document.importNode(template.content, true);
-// document.body.appendChild(clone);
-// //添加复制的template的内容
-// document.body.appendChild(template.content.cloneNode(true));
+{
+  const template = document.createElement('template');
+  template.innerHTML = /*html*/ `<h1>Top</h1>
+<h2>Center</h2>
+<h3>Bottom</h3>`;
+  document.body.appendChild(template);
+  //复制template的内容
+  const clone = document.importNode(template.content, true);
+  document.body.appendChild(clone);
+  //添加复制的template的内容
+  document.body.appendChild(template.content.cloneNode(true));
+}
 
 class CustomInfoItem extends HTMLElement {
   constructor() {

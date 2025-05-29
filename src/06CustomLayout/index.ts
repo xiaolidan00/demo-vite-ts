@@ -72,9 +72,9 @@ customElements.define('custom-layout', CustomLayout);
 // const rightSlot = document.createElement('slot');
 // rightSlot.name = 'right';
 // shadow.appendChild(rightSlot);
-
-const content = document.createElement('div');
-content.innerHTML = /*html*/ `
+{
+  const content = document.createElement('div');
+  content.innerHTML = /*html*/ `
 <style>
 .border{
   display:inline-block;
@@ -92,4 +92,5 @@ content.innerHTML = /*html*/ `
     <h1 slot='tempSlot1' style="color:red">tempSlot1<strong>HAHAHA</strong></h1> 
      <h1 slot='tempSlot' style="color:orange">Hello</h1>
 </custom-layout>`;
-document.body.appendChild(content);
+  document.body.appendChild(content);
+}

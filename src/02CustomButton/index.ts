@@ -33,7 +33,7 @@ class CustomButton extends HTMLElement {
     this.attachShadow({ mode: 'open', delegatesFocus: true });
     //影子根节点
     const shadow = this.shadowRoot!;
-
+    //将自定义元素的子节点移到shadowRoot内
     if (this.childNodes?.length) {
       shadow.append(...Array.from(this.childNodes));
     }
@@ -100,13 +100,3 @@ customElements.define('custom-button', CustomButton);
   content.innerHTML = '<custom-button  >详情</custom-button>';
   document.body.appendChild(content);
 }
-
-// // 创建影子根
-// this.attachShadow({ mode: 'open', delegatesFocus: true });
-// //影子根节点
-// const shadow = this.shadowRoot!;
-
-// //将自定义元素的子节点移到shadowRoot内
-// if (this.childNodes?.length) {
-//   shadow.append(...Array.from(this.childNodes));
-// }

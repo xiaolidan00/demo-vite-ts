@@ -17,7 +17,7 @@
     "jsx": "preserve",
     "lib": ["ESNext", "DOM"]
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "getPage.js", "type.d.ts"],
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "index.ts"],
   "exclude": ["src/**/*.stories.ts", "src/examples/", "src/**/*.test.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

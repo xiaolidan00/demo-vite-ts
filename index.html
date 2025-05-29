@@ -3,7 +3,65 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Demo</title>
+    <title>Document</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      .container {
+        position: absolute;
+        top: 0px;
+        left: 0px;
+        height: 100%;
+        width: 100%;
+        background-color: dodgerblue;
+        padding: 20px 20px 20px 0;
+        display: flex;
+      }
+      .left-nav {
+        width: 300px;
+        padding-right: 20px;
+        height: 100%;
+        display: inline-block;
+        overflow: hidden auto;
+      }
+      .left-nav > div {
+        line-height: 40px;
+        color: gray;
+        height: 40px;
+        cursor: pointer;
+        border-radius: 0 20px 20px 0px;
+        background-color: white;
+        padding: 0 20px;
+      }
+      .left-nav > div:not(:last-child) {
+        margin-bottom: 10px;
+      }
+      .left-nav > div.active {
+        color: dodgerblue;
+        font-weight: bold;
+      }
+      .right-content {
+        height: 100%;
+        width: calc(100% - 300px);
+        border-radius: 20px;
+        background-color: white;
+        display: inline-block;
+      }
+      iframe {
+        height: 100%;
+        width: 100%;
+        border: none;
+      }
+    </style>
   </head>
-  <body><ul><li><a target='_blank' href='src/map/index.html'>map</a></li><li><a target='_blank' href='src/webcomponent/index.html'>webcomponent</a></li></ul></body>
+  <body>
+    <div class="container">
+      <div class="left-nav" id="nav"></div>
+      <div class="right-content">
+        <iframe id="app" src="src/01/index.html"></iframe>
+      </div>
+    </div>
+    <script type="module" src="index.ts"></script>
+  </body>
 </html>
