@@ -64,7 +64,7 @@ class CustomInput extends HTMLElement {
     //设置输入值
     this.setInputVal(this.getAttribute('value') || '');
     //输入事件监听
-    this.input.oninput = () => {
+    this.input.addEventListener('input', () => {;,
       console.log(this.internals.form);
       const v = this.input.value;
       //文本长度
@@ -73,7 +73,7 @@ class CustomInput extends HTMLElement {
       this.internals.setFormValue(v);
       //表单验证
       this.validate();
-    };
+    });
   }
   //设置输入值
   setInputVal(v: string) {
@@ -90,7 +90,7 @@ class CustomInput extends HTMLElement {
   }
   connectedCallback() {
     //获取关联表单
-    console.log(this.internals.form);
+    // console.log(this.internals.form);
   }
   disconnectedCallback() {
     this.input.oninput = null;
@@ -112,6 +112,7 @@ class CustomInput extends HTMLElement {
       this.tip.style.display = 'none';
     }
     this.internals.reportValidity();
+    // console.log('🚀 ~ CustomInput ~ validate ~ this.internals:', this.internals);
   }
 
   updateNum() {

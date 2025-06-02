@@ -61,6 +61,7 @@ class CustomSwitch extends HTMLElement {
       this.internals.states.delete('checked');
       this.internals.setFormValue('checked', '');
     }
+    console.log('🚀 ~ CustomSwitch ~ setchecked ~ this.internals:', this.internals);
   }
 
   //判断状态语法是否可用
