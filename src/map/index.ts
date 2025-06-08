@@ -55,6 +55,7 @@ const shapes: CanvasDrawType[] = [
   {
     id: 'Line',
     type: 'Line',
+    isClose: true,
     path: [
       [116.407, 39.904179],
       [116.4085, 39.904179],

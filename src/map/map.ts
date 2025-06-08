@@ -15,6 +15,7 @@ export type MapHtmlOverlay = {
   pos: LngLatXY;
   offset?: LngLatXY;
   id: string | number;
+  hidden?: boolean;
   name?: string;
   anchor?:
     | 'left-top'
@@ -106,6 +107,7 @@ export class MyMap {
   async updateHtml({ data, dom }: MapHtmlOptions) {
     dom.innerHTML = data.content;
     await nextTick();
+
     const pos = this.lnglat2Canvas(data.pos, this.zoom);
     const offset = data.offset || [0, 0];
     const w = dom.offsetWidth;
@@ -149,9 +151,15 @@ export class MyMap {
     //设置dom位置
     dom.style.left = left + 'px';
     dom.style.top = top + 'px';
+
     const start: LngLatXY = [left, top];
     const end: LngLatXY = [left + dom.offsetWidth, top + dom.offsetHeight];
     const box: HtmlBoxType = { start, end, dom, data };
+    //元素隐藏
+    if (data.hidden) {
+      dom.style.display = 'none';
+      return;
+    }
     //收集html范围，用于事件监听
     if (
       data.isAction &&
@@ -172,6 +180,7 @@ export class MyMap {
   }
   //更新html
   async renderHtml() {
+    //清空可视范围内的htmlbox
     this.htmlBox = [];
     for (let i = 0; i < this.htmlOverlays.length; i++) {
       await this.updateHtml(this.htmlOverlays[i]);

@@ -42,6 +42,7 @@ export type CommonCanvasType = {
   name?: string;
   isAction?: boolean;
   zIndex?: number;
+  hidden?: boolean;
 };
 export type CanvasPolygon = CommonCanvasType & {
   type: 'Polygon';
@@ -51,6 +52,7 @@ export type CanvasPolygon = CommonCanvasType & {
 export type CanvasLine = CommonCanvasType & {
   type: 'Line';
   path: PxXY[];
+  isClose?: boolean;
   style: LineStyle;
 };
 
@@ -135,6 +137,7 @@ export class CanvasRender {
 
   async draw(op: CanvasDrawType) {
     this.resetStyle();
+    if (op.hidden) return;
     switch (op.type) {
       case 'Circle':
         this.drawCircle(op);
@@ -226,20 +229,24 @@ export class CanvasRender {
     });
   }
   async drawImage(op: CanvasImage) {
+    if (op.hidden) return;
     const image = await this.loadImage(op.url);
     const w = op.width ? Math.ceil(op.width * 0.5) : Math.ceil(image.naturalWidth * 0.5);
     const h = op.height ? Math.ceil(op.height * 0.5) : Math.ceil(image.naturalHeight * 0.5);
     const x = op.offsetX ? op.pos[0] + op.offsetX : op.pos[0];
     const y = op.offsetY ? op.pos[1] + op.offsetY : op.pos[1];
-    if (op.height && op.width) {
-      this.ctx.drawImage(image, x - w, y - h, op.width, op.height);
-    } else {
-      this.ctx.drawImage(image, x - w, y - h);
+    if (this.setBoxMap([x - w, y - h], [x + w, y + h], op)) {
+      if (op.height && op.width) {
+        this.ctx.drawImage(image, x - w, y - h, op.width, op.height);
+      } else {
+        this.ctx.drawImage(image, x - w, y - h);
+      }
     }
-    this.setBoxMap([x - w, y - h], [x + w, y + h], op);
   }
   setBoxMap(start: PxXY, end: PxXY, data: CanvasDrawType) {
-    //收集形状元素范围，用于后续事件监听
+    //像素小于1不绘制
+    if (end[0] - start[0] < 1 || end[1] - start[1] < 1) return false;
+    //收集在可视范围内的形状元素，用于后续事件监听
     if (
       data.isAction &&
       ((end[0] >= 0 && end[1] >= 0) || (start[0] <= this.canvas.width && start[1] <= this.canvas.height))
@@ -247,9 +254,13 @@ export class CanvasRender {
       const item = { start, end, data, id: data.id };
 
       this.boxMap.push(item);
+      return true;
     }
+    return false;
   }
   drawCircle(op: CanvasCircle) {
+    //隐藏
+    if (op.hidden) return;
     this.ctx.beginPath();
     const x = op.center[0];
     const y = op.center[1];
@@ -257,21 +268,25 @@ export class CanvasRender {
 
     const style = op.style;
     const lineWidth = style.lineWidth || 0;
-    if (style.fillColor) {
-      this.setShapeStyle(style);
-      this.ctx.fill();
+    if (
+      this.setBoxMap(
+        [x - op.radius - lineWidth, y - op.radius - lineWidth],
+        [x + op.radius + lineWidth, y + op.radius + lineWidth],
+        op
+      )
+    ) {
+      if (style.fillColor) {
+        this.setShapeStyle(style);
+        this.ctx.fill();
+      }
+      if (style.lineWidth && style.lineColor) {
+        this.setLineStyle(style);
+        this.ctx.stroke();
+      }
     }
-    if (style.lineWidth && style.lineColor) {
-      this.setLineStyle(style);
-      this.ctx.stroke();
-    }
-    this.setBoxMap(
-      [x - op.radius - lineWidth, y - op.radius - lineWidth],
-      [x + op.radius + lineWidth, y + op.radius + lineWidth],
-      op
-    );
   }
   drawRect(op: CanvasRect) {
+    if (op.hidden) return;
     const startX = Math.min(op.start[0], op.end[0]);
     const startY = Math.min(op.start[1], op.end[1]);
     const endX = Math.max(op.start[0], op.end[0]);
@@ -285,16 +300,16 @@ export class CanvasRender {
 
     const style = op.style;
     const lineWidth = style.lineWidth || 0;
-    if (style.fillColor) {
-      this.setShapeStyle(style);
-      this.ctx.fill();
+    if (this.setBoxMap([startX - lineWidth, startY - lineWidth], [endX + lineWidth, endY + lineWidth], op)) {
+      if (style.fillColor) {
+        this.setShapeStyle(style);
+        this.ctx.fill();
+      }
+      if (style.lineWidth && style.lineColor) {
+        this.setLineStyle(style);
+        this.ctx.stroke();
+      }
     }
-    if (style.lineWidth && style.lineColor) {
-      this.setLineStyle(style);
-      this.ctx.stroke();
-    }
-
-    this.setBoxMap([startX - lineWidth, startY - lineWidth], [endX + lineWidth, endY + lineWidth], op);
   }
   drawPolygonOrLine(op: CanvasPolygon | CanvasLine) {
     this.ctx.beginPath();
@@ -318,37 +333,55 @@ export class CanvasRender {
       bound.maxx = Math.max(bound.maxx, item[0]);
       bound.maxy = Math.max(bound.maxy, item[1]);
     }
-    this.ctx.closePath();
-    const lineWidth = op.style.lineWidth || 0;
-    this.setBoxMap(
-      [bound.minx - lineWidth, bound.miny - lineWidth],
-      [bound.maxx + lineWidth, bound.maxy + lineWidth],
-      op
-    );
+    //是否封闭图形
+    if (op.type === 'Polygon' || (op.type === 'Line' && op.isClose)) this.ctx.closePath();
+    return bound;
   }
+  //绘制多边形
   drawPolygon(op: CanvasPolygon) {
-    this.drawPolygonOrLine(op);
+    if (op.hidden) return;
+    const bound = this.drawPolygonOrLine(op);
     const style = op.style;
-    if (style.fillColor) {
-      this.setShapeStyle(style);
-      this.ctx.fill();
-    }
-    if (style.lineWidth && style.lineColor) {
-      this.setLineStyle(style);
-      this.ctx.stroke();
+    const lineWidth = style.lineWidth || 0;
+    if (
+      this.setBoxMap(
+        [bound.minx - lineWidth, bound.miny - lineWidth],
+        [bound.maxx + lineWidth, bound.maxy + lineWidth],
+        op
+      )
+    ) {
+      if (style.fillColor) {
+        this.setShapeStyle(style);
+        this.ctx.fill();
+      }
+      if (style.lineWidth && style.lineColor) {
+        this.setLineStyle(style);
+        this.ctx.stroke();
+      }
     }
   }
+  //绘制折线
   drawLine(op: CanvasLine) {
-    this.drawPolygonOrLine(op);
+    if (op.hidden) return;
+    const bound = this.drawPolygonOrLine(op);
     const style = op.style;
-
-    if (style.lineWidth && style.lineColor) {
-      this.setLineStyle(style);
-      this.ctx.stroke();
+    const lineWidth = style.lineWidth || 0;
+    if (
+      this.setBoxMap(
+        [bound.minx - lineWidth, bound.miny - lineWidth],
+        [bound.maxx + lineWidth, bound.maxy + lineWidth],
+        op
+      )
+    ) {
+      if (style.lineWidth && style.lineColor) {
+        this.setLineStyle(style);
+        this.ctx.stroke();
+      }
     }
   }
 
   drawText(op: CanvasText) {
+    if (op.hidden) return;
     this.ctx.beginPath();
     const x = op.offsetX ? op.pos[0] + op.offsetX : op.pos[0];
     const y = op.offsetY ? op.pos[1] + op.offsetY : op.pos[1];
@@ -360,18 +393,18 @@ export class CanvasRender {
 
     const width = this.ctx.measureText(op.text).width;
     const lineWidth = style.lineWidth || 0;
-    if (style.fillColor) {
-      this.setShapeStyle(style);
-      this.ctx.fillText(op.text, x, y);
-    }
-    if (style.lineColor && style.lineWidth) {
-      this.setLineStyle(style);
-      this.ctx.strokeText(op.text, x, y);
-    }
-
     const w = Math.ceil(width * 0.5);
     const h = Math.ceil(fontSize * 0.5);
-    this.setBoxMap([x - w - lineWidth, y - h - lineWidth], [x + w + lineWidth, y + h + lineWidth], op);
+    if (this.setBoxMap([x - w - lineWidth, y - h - lineWidth], [x + w + lineWidth, y + h + lineWidth], op)) {
+      if (style.fillColor) {
+        this.setShapeStyle(style);
+        this.ctx.fillText(op.text, x, y);
+      }
+      if (style.lineColor && style.lineWidth) {
+        this.setLineStyle(style);
+        this.ctx.strokeText(op.text, x, y);
+      }
+    }
   }
   checkShapes(x: number, y: number) {
     x = Math.floor(x);
