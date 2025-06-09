@@ -61,19 +61,27 @@ class CustomInput extends HTMLElement {
     this.input = shadow.querySelector('input') as HTMLInputElement;
     this.num = shadow.querySelector('.num') as HTMLSpanElement;
     this.tip = shadow.querySelector('.error-tip') as HTMLDivElement;
-    //设置输入值
+    //设置初始输入值
     this.setInputVal(this.getAttribute('value') || '');
     //输入事件监听
-    this.input.addEventListener('input', () => {;,
-      console.log(this.internals.form);
-      const v = this.input.value;
-      //文本长度
-      this.updateNum();
-      //设置表单值
-      this.internals.setFormValue(v);
-      //表单验证
-      this.validate();
-    });
+    this.input.addEventListener('input', this.onInputEvent.bind(this));
+    this.input.addEventListener('change', this.onInputEvent.bind(this));
+  }
+  onInputEvent(e: Event) {
+    //输入值
+    const v = this.input.value;
+
+    //文本长度
+    this.updateNum();
+    //设置表单值
+    this.internals.setFormValue(v);
+    //表单验证
+    this.validate();
+
+    //分发事件
+    //@ts-ignore
+    const clone = new e.constructor(e.type, e);
+    this.dispatchEvent(clone);
   }
   //设置输入值
   setInputVal(v: string) {
@@ -82,23 +90,33 @@ class CustomInput extends HTMLElement {
     this.internals.setFormValue(v);
     this.validate();
   }
+
   set value(v: string) {
     this.setInputVal(v);
   }
   get value() {
     return this.input?.value || '';
   }
-  connectedCallback() {
-    //获取关联表单
-    // console.log(this.internals.form);
+  //获取关联表单
+  get form() {
+    return this.internals.form;
   }
+  //设置表单字段名
+  set name(v: string) {
+    this.setAttribute('name', v);
+  }
+  get name() {
+    return this.getAttribute('name') || '';
+  }
+  //注销事件监听
   disconnectedCallback() {
-    this.input.oninput = null;
+    this.input.removeEventListener('input', this.onInputEvent.bind(this));
+    this.input.removeEventListener('change', this.onInputEvent.bind(this));
   }
   //表单自带验证
   validate() {
-    if (this.input.value.length > Number(this.getAttribute('maxlength'))) {
-      const text = '最多输入10个字符';
+    if (this.getAttribute('maxlength') && this.input.value.length > Number(this.getAttribute('maxlength'))) {
+      const text = `最多输入${this.getAttribute('maxlength')}个字符`;
       this.tip.innerHTML = text;
       this.tip.style.display = 'block';
       this.internals.setValidity({ tooLong: true }, text, this.tip);
@@ -111,8 +129,8 @@ class CustomInput extends HTMLElement {
       this.internals.setValidity({});
       this.tip.style.display = 'none';
     }
+    //显示提示信息框
     this.internals.reportValidity();
-    // console.log('🚀 ~ CustomInput ~ validate ~ this.internals:', this.internals);
   }
 
   updateNum() {
@@ -144,14 +162,26 @@ class CustomInput extends HTMLElement {
   }
 }
 customElements.define('custom-input', CustomInput);
+{
+  const cinput = new CustomInput();
+  cinput.setAttribute('placeholder', '请输入数值');
+  cinput.setAttribute('required', 'true');
+  cinput.setAttribute('maxlength', '10');
+  cinput.value = '1234';
+  cinput.name = 'money';
 
-const cinput = new CustomInput();
-cinput.setAttribute('placeholder', '请输入数值');
-cinput.setAttribute('required', 'true');
-cinput.setAttribute('maxlength', '10');
-cinput.value = '1234';
-document.body.appendChild(cinput);
+  const form = document.createElement('form');
+  document.body.appendChild(form);
+  form.appendChild(cinput);
 
-const form = document.createElement('form');
-form.appendChild(cinput);
-document.body.appendChild(form);
+  //监听change事件
+  cinput.addEventListener('change', (e: Event) => {
+    console.log('🚀 ~ cinput.addEventListener ~ e:', e);
+    //获取表单数据
+    const formData = new FormData(form);
+    //获取表单值
+    console.log('🚀 ~ formData:', formData.get('money'));
+    //表单校验结果，是否通过校验
+    console.log('🚀 ~ Validity:', form.checkValidity());
+  });
+}

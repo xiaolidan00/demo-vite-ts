@@ -42,26 +42,41 @@ class CustomSwitch extends HTMLElement {
     shadow.adoptedStyleSheets = [sheet];
     this.addEventListener('click', this.onClick.bind(this));
   }
-  onClick() {
+  onClick(e: Event) {
+    //切换开关状态
     this.checked = !this.checked;
+
+    //分发事件
+    //@ts-ignore
+    const event = new Event('change', { detail: { checked: this.checked } });
+    this.dispatchEvent(event);
   }
   disconnectedCallback() {
     this.removeEventListener('click', this.onClick.bind(this));
   }
+  //设置表单字段名
+  set name(v: string) {
+    this.setAttribute('name', v);
+  }
+  get name() {
+    return this.getAttribute('name') || '';
+  }
   get checked() {
+    //@ts-ignore
     return this.internals.states.has('checked');
   }
 
   set checked(flag) {
     //设置状态值
     if (flag) {
+      //@ts-ignore
       this.internals.states.add('checked');
-      this.internals.setFormValue('checked', 'checked');
+      this.internals.setFormValue('on');
     } else {
+      //@ts-ignore
       this.internals.states.delete('checked');
-      this.internals.setFormValue('checked', '');
+      this.internals.setFormValue('off');
     }
-    console.log('🚀 ~ CustomSwitch ~ setchecked ~ this.internals:', this.internals);
   }
 
   //判断状态语法是否可用
@@ -71,5 +86,24 @@ class CustomSwitch extends HTMLElement {
 }
 
 customElements.define('custom-switch', CustomSwitch);
-const switchEl = new CustomSwitch();
-document.body.appendChild(switchEl);
+{
+  const form = document.createElement('form');
+  document.body.appendChild(form);
+
+  const switchEl = new CustomSwitch();
+  switchEl.name = 'Hello';
+  switchEl.checked = true;
+
+  form.appendChild(switchEl);
+
+  //监听change事件
+  switchEl.addEventListener('change', (e: Event) => {
+    console.log('🚀 ~ addEventListener ~ e:', e);
+    //获取表单数据
+    const formData = new FormData(form);
+    //获取表单值
+    console.log('🚀 ~ formData:', formData.get('Hello'));
+    //表单校验结果，是否通过校验
+    console.log('🚀 ~ Validity:', form.checkValidity());
+  });
+}
