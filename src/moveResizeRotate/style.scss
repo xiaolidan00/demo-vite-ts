@@ -1,0 +1,79 @@
+body {
+  position: absolute;
+  padding: 0px;
+  margin: 0px;
+  top: 0px;
+  left: 0px;
+  height: 100%;
+  width: 100%;
+  background-color: black;
+}
+* {
+  box-sizing: border-box;
+}
+.cardContainer {
+  position: absolute;
+  left: 100px;
+  top: 100px;
+  width: calc(100% - 200px);
+  height: calc(100% - 200px);
+  background-color: white;
+  background-image: linear-gradient(90deg, rgba(50, 0, 0, 0.05) 3%, rgba(0, 0, 0, 0) 3%),
+    linear-gradient(360deg, rgba(50, 0, 0, 0.05) 3%, rgba(0, 0, 0, 0) 3%);
+  background-size: 20px 20px;
+  background-position: center center;
+}
+.card-elmt {
+  position: absolute;
+  background-color: var(--elmt-bg);
+  border: dashed 3px var(--elmt-border);
+  user-select: none;
+  text-align: center;
+  --top: -30px;
+  --rotate-radius: 10px;
+  > .body {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    position: relative;
+    top: calc(var(--rotate-radius) + var(--top));
+  }
+  .rotation {
+    width: var(--rotate-radius);
+    height: var(--rotate-radius);
+    display: inline-block;
+    border-radius: 50%;
+    box-shadow: 0 0 10px #ccc;
+    border: solid 3px var(--elmt-border);
+    background-color: white;
+    position: relative;
+    top: var(--top);
+  }
+  &.blue {
+    --elmt-border: dodgerblue;
+    --elmt-bg: rgba(30, 144, 255, 0.3);
+  }
+  &.gold {
+    --elmt-border: gold;
+    --elmt-bg: rgba(255, 215, 0, 0.3);
+  }
+  &.green {
+    --elmt-border: green;
+    --elmt-bg: rgba(0, 255, 0, 0.3);
+  }
+
+  &.red {
+    --elmt-border: red;
+    --elmt-bg: rgba(255, 0, 0, 0.3);
+  }
+  &.purple {
+    --elmt-border: rgb(132, 112, 255);
+    --elmt-bg: rgba(132, 112, 255, 0.3);
+  }
+}
