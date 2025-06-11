@@ -15,5 +15,8 @@
     "sass-embedded": "^1.89.2",
     "typescript": "^5.8.2",
     "vite": "^6.2.5"
+  },
+  "dependencies": {
+    "xcolor-helper": "^1.0.3"
   }
 }

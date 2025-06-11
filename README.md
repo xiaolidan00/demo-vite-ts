@@ -5,7 +5,7 @@
 - `map/map.ts` 地图绘制与动作监听
 - `map/CanvasRender.ts` 封装 canvas 绘制
 
-# WebComponents 自定义元素
+## WebComponents 自定义元素
 
 - 01 CustomHello
 - 02 CustomButton
@@ -18,6 +18,14 @@
 - 09 CustomInput
 - 10 CustomSwitch
 
-# 拖拽移动调整大小旋转
+## 拖拽移动调整大小旋转
 
 `moveResizeRotate/`
+
+## canvas 流动关系图
+
+`pointLine/`
+
+## canvas 管道
+
+`pipe/`
