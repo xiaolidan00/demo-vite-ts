@@ -38,7 +38,7 @@ function main() {
   });
   function renderItem(params: any, api: any) {
     const categoryIndex = api.value(0);
-
+    console.log('🚀 ~ index.ts ~ renderItem ~ params.actionType:', params.actionType);
     const id = api.value(4);
     const start = api.coord([api.value(1), categoryIndex]);
     const end = api.coord([api.value(2), categoryIndex]);
@@ -59,40 +59,17 @@ function main() {
         height: params.coordSys.height
       }
     );
-    //     {
-    //     "fill": "#FF7D00",
-    //     "textPosition": "inside",
-    //     "textDistance": 5,
-    //     "fontStyle": "normal",
-    //     "fontWeight": "normal",
-    //     "fontSize": 12,
-    //     "fontFamily": "Microsoft YaHei",
-    //     "textFill": "#fff",
-    //     "textStroke": "#FF7D00",
-    //     "textStrokeWidth": 2,
-    //     "text": null,
-    //     "legacy": true
-    // }
-    if (currentId) {
-      return (
-        rectShape && {
-          type: 'rect',
-          transition: ['shape'],
-          shape: rectShape,
-          style: currentId == id ? api.style() : api.style({ opacity: 0.1 })
-        }
-      );
-    } else {
-      return (
-        rectShape && {
-          type: 'rect',
-          transition: ['shape'],
-          shape: rectShape,
-          style: api.style()
-        }
-      );
-    }
+
+    return (
+      rectShape && {
+        type: 'rect',
+        transition: ['shape'],
+        shape: rectShape,
+        style: api.style()
+      }
+    );
   }
+
   const option = {
     tooltip: {
       formatter: function (params: any) {
@@ -165,11 +142,11 @@ function main() {
   document.body.appendChild(el);
   const chart = new BaseChart(el);
   chart.setOption(option);
-  chart.chart.on('mouseover', (ev) => {
-    console.log('🚀 ~ index.ts ~ chart.chart.on ~ ev:', ev);
-    const value = ev.value as any[];
-    currentId = value[4];
-    chart.setOption(option);
+  chart.chart.on('highlight', (ev) => {
+    console.log('🚀 ~ index.ts ~ chart.chart.on ~ highlight:', ev);
+  });
+  chart.chart.on('downplay', (ev) => {
+    console.log('🚀 ~ index.ts ~ chart.chart.on ~ downplay:', ev);
   });
 }
 main();
