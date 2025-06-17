@@ -225,6 +225,71 @@ export class MyMap {
       this.drawLayer();
     }
   }
+  setView(center: LngLatXY, z: number) {
+    if (center[0] >= -180 && center[0] <= 180 && center && center[1] >= -90 && center[1] <= 90) {
+      this.center = center;
+    }
+    if (z >= 3 && z <= 19) {
+      this.zoom = Math.ceil(z);
+    }
+    this.drawLayer();
+  }
+  //适配屏幕大小和边距
+  fitMapView({
+    zoomRange,
+    startPoint,
+    endPoint,
+    paddingTop,
+    paddingBottom,
+    paddingLeft,
+    paddingRight
+  }: {
+    zoomRange: [number, number];
+    startPoint: LngLatXY;
+    endPoint: LngLatXY;
+    paddingTop?: number;
+    paddingBottom?: number;
+    paddingLeft?: number;
+    paddingRight?: number;
+  }) {
+    const w = this.container.offsetWidth,
+      h = this.container.offsetHeight;
+    const viewWidth = w - (paddingLeft || 0) - (paddingRight || 0);
+    const viewHeight = h - (paddingTop || 0) - (paddingBottom || 0);
+    const start: LngLatXY = [Math.min(startPoint[0], endPoint[0]), Math.min(startPoint[1], endPoint[1])];
+    const end: LngLatXY = [Math.max(startPoint[0], endPoint[0]), Math.max(startPoint[1], endPoint[1])];
+    const center: LngLatXY = [(start[0] + end[0]) * 0.5, (start[1] + end[1]) * 0.5];
+    let zoom: number = 3;
+    let ww = 0,
+      hh = 0;
+    let flag = false;
+
+    for (zoom = zoomRange[0]; zoom <= zoomRange[1]; zoom++) {
+      const p = this.projection.lnglat2px(start, zoom);
+
+      const p1 = this.projection.lnglat2px(end, zoom);
+
+      ww = Math.abs(p1[0] - p[0]);
+      hh = Math.abs(p1[1] - p[1]);
+      if (ww >= viewWidth && hh >= viewHeight) {
+        flag = true;
+
+        break;
+      }
+    }
+    if (!flag) {
+      zoom = zoomRange[1];
+    }
+
+    const c = this.projection.lnglat2px(center, zoom);
+    const newCenter = this.projection.px2lnglat(
+      [c[0] - (paddingLeft || 0) + (paddingRight || 0), c[1] - (paddingTop || 0) + (paddingBottom || 0)],
+      zoom
+    );
+    this.setView(newCenter, zoom);
+    return { zoom, center: newCenter };
+  }
+
   onWheel = debounce(
     function (ev: WheelEvent) {
       console.log('🚀 ~ MyMap ~ onWheel ~ ev:', ev, ev.deltaY);

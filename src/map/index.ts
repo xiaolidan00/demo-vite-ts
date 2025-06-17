@@ -3,7 +3,7 @@ import { type CanvasDrawType } from './CanvasRender';
 import { type LngLatXY } from './SphericalMercator';
 const map = new MyMap({
   container: document.getElementById('map') as HTMLElement,
-  zoom: 18,
+  zoom: 10,
   center: [116.407387, 39.904179]
 });
 
@@ -107,6 +107,16 @@ const htmlObj: MapHtmlOverlay = {
   isAction: true
 };
 map.addHtml(htmlObj);
+
+console.log(
+  map.fitMapView({
+    zoomRange: [10, 18],
+    startPoint: [116.407, 39.905],
+    endPoint: [116.4085, 39.906],
+    paddingLeft: 100,
+    paddingBottom: 100
+  })
+);
 
 let selectObj: CanvasDrawType;
 map.events.on(
