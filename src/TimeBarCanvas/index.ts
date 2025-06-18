@@ -49,7 +49,7 @@ class TimeRangeCanvas {
 
           tooltip.innerHTML = this.tooltipFormatter(item.data);
           tooltip.style.left = `${bound.left + item.left}px`;
-          const t = bound.top + item.top - tooltip.offsetHeight;
+          const t = bound.top + item.top - (tooltip.offsetHeight || 92);
           tooltip.style.top = `${Math.max(t, 0)}px`;
           tooltip.style.display = 'block';
           this.draw();
