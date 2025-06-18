@@ -15,6 +15,17 @@ class TimeRangeCanvas {
   tooltip: HTMLDivElement;
   actionMap: any[] = [];
   draw: Function;
+  isMove = false;
+  moveStart = 0;
+  moveStep = 0.5;
+  moveOffset = 0;
+  scale = 1;
+  maxScale = 4;
+  minScale = 1;
+  scaleStep = 0.5;
+  barLen = 1;
+  onScale: Function;
+
   constructor(canvas: HTMLCanvasElement, data: any[], config: any) {
     this.canvas = canvas;
 
@@ -27,18 +38,74 @@ class TimeRangeCanvas {
     tooltip.style.position = 'fixed';
     tooltip.style.display = 'none';
     tooltip.style.zIndex = '3100';
+    tooltip.style.pointerEvents = 'none';
     this.tooltip = tooltip;
     document.body.appendChild(tooltip);
+    this.onScale = debounce(this.onWheel.bind(this), 100);
+    canvas.addEventListener('pointerdown', this.onMoveStart.bind(this));
 
     canvas.addEventListener('pointermove', this.onHover.bind(this));
+    canvas.addEventListener('pointerup', this.onMoveEnd.bind(this));
+    canvas.addEventListener('pointerleave', this.onMoveEnd.bind(this));
+    canvas.addEventListener('wheel', this.onScale.bind(this));
     this.resizeUtil = new BaseResize(canvas, this.resizeCanvas.bind(this));
-    this.draw = debounce(this.onDraw, 100);
+    this.draw = debounce(this.onDraw.bind(this), 100);
     this.draw();
   }
+  onWheel(ev: WheelEvent) {
+    let s = this.scale;
+    if (ev.deltaY > 0) {
+      //down
+      s = s - this.scaleStep;
+      if (s < this.minScale) {
+        s = this.minScale;
+      }
+    } else {
+      //up
+      s = s + this.scaleStep;
+      if (s > this.maxScale) {
+        s = this.maxScale;
+      }
+    }
+    this.scale = s;
+    if (this.scale === 1) {
+      this.moveOffset = 0;
+    }
+    this.checkMove();
+    this.draw();
+  }
+  onMoveEnd() {
+    if (this.isMove && this.scale > 1) {
+      this.isMove = false;
+      console.log(this.moveOffset);
+      this.draw();
+    }
+  }
+  onMoveStart(ev: PointerEvent) {
+    this.isMove = true;
+    this.moveStart = ev.offsetX;
+    this.hideTooltip();
+  }
+  checkMove() {
+    if (this.moveOffset > 0) {
+      this.moveOffset = 0;
+    } else if (this.moveOffset < this.barLen - this.barLen * this.scale) {
+      this.moveOffset = this.barLen - this.barLen * this.scale;
+    }
+  }
   onHover(ev: PointerEvent) {
-    const tooltip = this.tooltip;
     const x = ev.offsetX;
     const y = ev.offsetY;
+
+    if (this.isMove) {
+      this.moveOffset += (ev.offsetX - this.moveStart) * this.moveStep;
+
+      this.checkMove();
+      this.moveStart = x;
+
+      return;
+    }
+    const tooltip = this.tooltip;
     const bound = this.canvas.getBoundingClientRect();
 
     for (let i = 0; i < this.actionMap.length; i++) {
@@ -57,7 +124,10 @@ class TimeRangeCanvas {
         return;
       }
     }
-    tooltip.style.display = 'none';
+    this.hideTooltip();
+  }
+  hideTooltip() {
+    this.tooltip.style.display = 'none';
     this.active = '';
     this.draw();
   }
@@ -80,6 +150,9 @@ class TimeRangeCanvas {
   }
   setData(data: any[]) {
     this.data = data;
+    this.scale = 1;
+    this.moveOffset = 0;
+
     this.draw();
   }
   onDraw() {
@@ -92,8 +165,11 @@ class TimeRangeCanvas {
     const heightUnit = (canvas.height - op.textBottom) / this.data.length;
     const heightHalf = heightUnit * 0.5;
     const heightGap = (1 - op.barPercent) * heightUnit * 0.5;
-    const barLength = canvas.width - op.textWidth - op.paddingRight;
+    const barLen = canvas.width - op.textWidth - op.paddingRight;
+    const barLength = barLen * this.scale;
+    console.log('🚀 ~ index.ts ~ TimeRangeCanvas ~ onDraw ~ this.scale:', this.scale);
     const barWidth = heightUnit * op.barPercent;
+    this.barLen = barLen;
     let min = Number.MAX_SAFE_INTEGER;
     let max = 0;
 
@@ -127,17 +203,17 @@ class TimeRangeCanvas {
     max = new Date(dayjs(max).format('YYYY-MM-DD') + ' 23:59:59').getTime();
     const range = max - min;
     const lerp = (size: number) => {
-      return ((size - min) / range) * barLength;
+      return this.moveOffset + ((size - min) / range) * barLength;
     };
     let step = 4;
     if (range > 24 * 3600 * 1000) {
       step = 12;
     }
     const count = Math.ceil(range / (step * 3600 * 1000));
+    ctx.font = `${op.fontSize}px serif`;
+    ctx.fillStyle = op.fontColor;
+    ctx.textAlign = 'left';
     for (let i = 0; i <= count; i++) {
-      ctx.font = `${op.fontSize}px serif`;
-      ctx.fillStyle = op.fontColor;
-      ctx.textAlign = 'left';
       const d = dayjs(min)
         .add(i * step, 'hour')
         .format('YYYY-MM-DD HH:mm:ss');
@@ -146,6 +222,8 @@ class TimeRangeCanvas {
       const text = dayjs(t).format('HH:mm');
       const textW = ctx.measureText(text).width;
       const x = lerp(t) + op.textWidth;
+      if (x < op.textWidth) continue;
+      if (x > canvas.width) continue;
 
       ctx.fillText(text, x - textW * 0.5, canvas.height - op.textBottom * 0.5);
     }
@@ -160,9 +238,18 @@ class TimeRangeCanvas {
       ctx.fillText(item.name, op.textWidth - textW - 5, heightUnit * i + heightHalf);
       item.data.forEach((a: any, j: number) => {
         const id = i + '-' + j;
-        const x = lerp(a.start);
-        const x1 = lerp(a.end);
-
+        let x = lerp(a.start);
+        let x1 = lerp(a.end);
+        if (x < op.textWidth && x1 < op.textWidth) return;
+        else if (x > canvas.width - op.paddingRight) return;
+        else {
+          if (x < op.textWidth) {
+            x = op.textWidth;
+          }
+          if (x1 > canvas.width - op.paddingRight) {
+            x1 = canvas.width - op.paddingRight;
+          }
+        }
         if (this.active && this.active !== id) {
           ctx.fillStyle = getDarkColor(a.color, 0.5);
         } else {
@@ -191,7 +278,11 @@ class TimeRangeCanvas {
   }
   destroy() {
     document.body.removeChild(this.tooltip);
-    this.canvas.removeEventListener('pointermove', this.onHover.bind(this));
+    const canvas = this.canvas;
+    canvas.addEventListener('pointermove', this.onHover.bind(this));
+    canvas.addEventListener('pointerup', this.onMoveEnd.bind(this));
+    canvas.addEventListener('pointerleave', this.onMoveEnd.bind(this));
+    canvas.addEventListener('wheel', this.onScale.bind(this));
     this.destroy();
   }
 }

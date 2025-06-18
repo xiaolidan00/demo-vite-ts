@@ -8,10 +8,10 @@ const types = [
   { name: '停止', color: '#C9CDD4' }, // 0
   { name: '运行', color: '#00B42A' }, // 1
   { name: '故障', color: '#F53F3F' }, // 2
-  { name: '未知', color: '#FF7D00' } // 3
+  { name: '未知', color: '#EFEFEF' } // 3
 ];
 function main() {
-  const timeType = '24';
+  const timeType = '7';
   const data: any[] = [];
   let min = new Date().getTime();
   let max = 0;
@@ -69,7 +69,8 @@ function main() {
       }
     );
   }
-
+  min = new Date(dayjs(min).format('YYYY-MM-DD') + ' 00:00:00').getTime();
+  max = new Date(dayjs(max).format('YYYY-MM-DD') + ' 23:59:59').getTime();
   const option = {
     tooltip: {
       formatter: function (params: any) {
@@ -101,6 +102,7 @@ function main() {
     xAxis: {
       min,
       max,
+      interval: timeType == '24' ? 3600 * 4 * 1000 : 3600 * 12 * 1000,
       axisLabel: {
         formatter: function (val: number) {
           if (timeType === '24') {
@@ -142,11 +144,11 @@ function main() {
   document.body.appendChild(el);
   const chart = new BaseChart(el);
   chart.setOption(option);
-  chart.chart.on('highlight', (ev) => {
-    console.log('🚀 ~ index.ts ~ chart.chart.on ~ highlight:', ev);
-  });
-  chart.chart.on('downplay', (ev) => {
-    console.log('🚀 ~ index.ts ~ chart.chart.on ~ downplay:', ev);
-  });
+  // chart.chart.on('highlight', (ev) => {
+  //   console.log('🚀 ~ index.ts ~ chart.chart.on ~ highlight:', ev);
+  // });
+  // chart.chart.on('downplay', (ev) => {
+  //   console.log('🚀 ~ index.ts ~ chart.chart.on ~ downplay:', ev);
+  // });
 }
 main();
