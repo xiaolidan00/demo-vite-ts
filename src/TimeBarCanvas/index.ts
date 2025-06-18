@@ -170,6 +170,7 @@ class TimeRangeCanvas {
     console.log('🚀 ~ index.ts ~ TimeRangeCanvas ~ onDraw ~ this.scale:', this.scale);
     const barWidth = heightUnit * op.barPercent;
     this.barLen = barLen;
+
     let min = Number.MAX_SAFE_INTEGER;
     let max = 0;
 
@@ -221,11 +222,11 @@ class TimeRangeCanvas {
       const t = new Date(d).getTime();
       const text = dayjs(t).format('HH:mm');
       const textW = ctx.measureText(text).width;
-      const x = lerp(t) + op.textWidth;
-      if (x < op.textWidth) continue;
-      if (x > canvas.width) continue;
+      const x = lerp(t);
+      if (x < 0) continue;
+      if (x > barLength) continue;
 
-      ctx.fillText(text, x - textW * 0.5, canvas.height - op.textBottom * 0.5);
+      ctx.fillText(text, x + op.textWidth - textW * 0.5, canvas.height - op.textBottom * 0.5);
     }
 
     list.forEach((item: any, i: number) => {
@@ -240,14 +241,14 @@ class TimeRangeCanvas {
         const id = i + '-' + j;
         let x = lerp(a.start);
         let x1 = lerp(a.end);
-        if (x < op.textWidth && x1 < op.textWidth) return;
-        else if (x > canvas.width - op.paddingRight) return;
+        if (x < 0 && x1 < 0) return;
+        else if (x > barLength) return;
         else {
-          if (x < op.textWidth) {
-            x = op.textWidth;
+          if (x < 0) {
+            x = 0;
           }
-          if (x1 > canvas.width - op.paddingRight) {
-            x1 = canvas.width - op.paddingRight;
+          if (x1 > barLength) {
+            x1 = barLength;
           }
         }
         if (this.active && this.active !== id) {
@@ -259,6 +260,7 @@ class TimeRangeCanvas {
         const left = op.textWidth + x;
         const top = heightUnit * i + heightGap;
         const w = x1 - x;
+        if (w <= 0) return;
         ctx.fillRect(left, top, w, barWidth);
         this.actionMap.push({
           id,
