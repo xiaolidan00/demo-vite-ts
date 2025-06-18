@@ -1,0 +1,29 @@
+span.tooltip-item-color {
+  display: inline-block;
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+}
+.tooltip-container {
+  line-height: 24px;
+  font-size: 14px;
+  border-radius: 4px;
+  background-color: white;
+  padding: 10px;
+  box-shadow: 0 0 10px #ccc;
+  pointer-events: none;
+}
+.tooltip-title {
+  font-weight: 600;
+}
+.tooltip-item {
+  display: flex;
+  align-items: center;
+}
+.tooltip-item-name {
+  margin: 0 10px;
+  flex: 1;
+}
+.tooltip-item-percent {
+  margin-left: 10px;
+}

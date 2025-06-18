@@ -1,0 +1,183 @@
+[
+  {
+    "name": "1#",
+    "data": [
+      {
+        "startTime": "2025-06-05 00:00:00",
+        "endTime": "2025-06-05 17:10:00",
+        "pumpWaterSituation": "2",
+        "timeRange": "8.9997",
+        "name": "0"
+      },
+      {
+        "startTime": "2025-06-05 17:10:00",
+        "endTime": "2025-06-06 17:20:00",
+        "pumpWaterSituation": "1",
+        "timeRange": "24.1663",
+        "name": "1"
+      },
+      {
+        "startTime": "2025-06-06 17:20:00",
+        "endTime": "2025-06-09 12:20:00",
+        "pumpWaterSituation": "0",
+        "timeRange": "66.9997",
+        "name": "0"
+      },
+      {
+        "startTime": "2025-06-09 12:20:00",
+        "endTime": "2025-06-10 12:20:00",
+        "pumpWaterSituation": "1",
+        "timeRange": "23.9997",
+        "name": "1"
+      },
+      {
+        "startTime": "2025-06-10 12:20:00",
+        "endTime": "2025-06-12 07:50:00",
+        "pumpWaterSituation": "0",
+        "timeRange": "43.4997",
+        "name": "0"
+      },
+      {
+        "startTime": "2025-06-12 07:50:00",
+        "endTime": "2025-06-12 09:30:00",
+        "pumpWaterSituation": "3",
+        "timeRange": "1.6665999999999999",
+        "name": "3"
+      }
+    ]
+  },
+  {
+    "name": "2#",
+    "data": [
+      {
+        "startTime": "2025-06-05 00:00:00",
+        "endTime": "2025-06-06 17:20:00",
+        "pumpWaterSituation": "0",
+        "timeRange": "33.1663",
+        "name": "0"
+      },
+      {
+        "startTime": "2025-06-06 17:20:00",
+        "endTime": "2025-06-07 17:20:00",
+        "pumpWaterSituation": "1",
+        "timeRange": "23.9997",
+        "name": "1"
+      },
+      {
+        "startTime": "2025-06-07 17:20:00",
+        "endTime": "2025-06-08 11:50:00",
+        "pumpWaterSituation": "0",
+        "timeRange": "18.4997",
+        "name": "0"
+      },
+      {
+        "startTime": "2025-06-08 11:50:00",
+        "endTime": "2025-06-08 12:10:00",
+        "pumpWaterSituation": "1",
+        "timeRange": "0.333",
+        "name": "1"
+      },
+      {
+        "startTime": "2025-06-08 12:10:00",
+        "endTime": "2025-06-10 12:20:00",
+        "pumpWaterSituation": "0",
+        "timeRange": "48.1663",
+        "name": "0"
+      },
+      {
+        "startTime": "2025-06-10 12:20:00",
+        "endTime": "2025-06-11 12:20:00",
+        "pumpWaterSituation": "1",
+        "timeRange": "23.9997",
+        "name": "1"
+      },
+      {
+        "startTime": "2025-06-11 12:20:00",
+        "endTime": "2025-06-12 07:50:00",
+        "pumpWaterSituation": "0",
+        "timeRange": "19.4997",
+        "name": "0"
+      },
+      {
+        "startTime": "2025-06-12 07:50:00",
+        "endTime": "2025-06-12 09:30:00",
+        "pumpWaterSituation": "3",
+        "timeRange": "1.6665999999999999",
+        "name": "3"
+      }
+    ]
+  },
+  {
+    "name": "3#",
+    "data": [
+      {
+        "startTime": "2025-06-05 00:00:00",
+        "endTime": "2025-06-05 17:10:00",
+        "pumpWaterSituation": "1",
+        "timeRange": "8.9997",
+        "name": "1"
+      },
+      {
+        "startTime": "2025-06-05 17:10:00",
+        "endTime": "2025-06-07 17:20:00",
+        "pumpWaterSituation": "0",
+        "timeRange": "48.1663",
+        "name": "0"
+      },
+      {
+        "startTime": "2025-06-07 17:20:00",
+        "endTime": "2025-06-08 11:50:00",
+        "pumpWaterSituation": "1",
+        "timeRange": "18.4997",
+        "name": "1"
+      },
+      {
+        "startTime": "2025-06-08 11:50:00",
+        "endTime": "2025-06-08 12:10:00",
+        "pumpWaterSituation": "0",
+        "timeRange": "0.333",
+        "name": "0"
+      },
+      {
+        "startTime": "2025-06-08 12:10:00",
+        "endTime": "2025-06-09 12:20:00",
+        "pumpWaterSituation": "1",
+        "timeRange": "24.1663",
+        "name": "1"
+      },
+      {
+        "startTime": "2025-06-09 12:20:00",
+        "endTime": "2025-06-11 12:20:00",
+        "pumpWaterSituation": "0",
+        "timeRange": "47.9997",
+        "name": "0"
+      },
+      {
+        "startTime": "2025-06-11 12:20:00",
+        "endTime": "2025-06-12 07:50:00",
+        "pumpWaterSituation": "1",
+        "timeRange": "19.4997",
+        "name": "1"
+      },
+      {
+        "startTime": "2025-06-12 07:50:00",
+        "endTime": "2025-06-12 09:30:00",
+        "pumpWaterSituation": "3",
+        "timeRange": "1.6665999999999999",
+        "name": "3"
+      }
+    ]
+  },
+  {
+    "name": "4#",
+    "data": [
+      {
+        "startTime": "2025-06-05 00:00:00",
+        "endTime": "2025-06-12 09:30:00",
+        "pumpWaterSituation": "3",
+        "timeRange": "168.0",
+        "name": "3"
+      }
+    ]
+  }
+]
