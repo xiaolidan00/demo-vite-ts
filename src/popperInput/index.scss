@@ -1,0 +1,53 @@
+.select-container {
+  position: fixed;
+  display: none;
+  height: 250px;
+  width: 200px;
+  box-shadow: 0 0 10px #ccc;
+  background-color: white;
+  overflow: auto;
+  font-size: 14px;
+  &::-webkit-scrollbar {
+    width: 8px;
+    background-color: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+  }
+  > div.item {
+    padding: 10px;
+    cursor: pointer;
+
+    &:hover,
+    &.active {
+      background-color: rgba(30, 144, 255, 0.3);
+      color: rgb(30, 144, 255);
+    }
+  }
+  .no-data {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    color: gray;
+    justify-content: center;
+  }
+}
+
+.select-input input {
+  background-color: transparent;
+  height: 100%;
+  padding: 0 10px;
+  border: none;
+  outline: none;
+  font-size: 14px;
+}
+.select-input {
+  display: inline-block;
+  border: solid 1px gainsboro;
+  height: 32px;
+  background-color: white;
+}
+.select-input:focus-within {
+  border-color: rgb(30, 144, 255);
+}

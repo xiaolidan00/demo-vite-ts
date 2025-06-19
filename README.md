@@ -29,3 +29,15 @@
 ## canvas 管道
 
 `pipe/`
+
+## 时间范围 Canvas 图表
+
+`TimeBarCanvas/`
+
+## echarts 自定义系列
+
+`echartsCustom/`
+
+## popper 下拉输入框
+
+`popperInput`
