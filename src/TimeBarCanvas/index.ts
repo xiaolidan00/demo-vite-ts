@@ -70,6 +70,8 @@ class TimeRangeCanvas {
     this.scale = s;
     if (this.scale === 1) {
       this.moveOffset = 0;
+    } else {
+      this.moveOffset = -((ev.offsetX - this.config.textWidth) / this.barLen) * this.scale * this.barLen;
     }
     this.checkMove();
     this.draw();
@@ -77,7 +79,7 @@ class TimeRangeCanvas {
   onMoveEnd() {
     if (this.isMove && this.scale > 1) {
       this.isMove = false;
-      console.log(this.moveOffset);
+
       this.draw();
     }
   }
@@ -167,7 +169,7 @@ class TimeRangeCanvas {
     const heightGap = (1 - op.barPercent) * heightUnit * 0.5;
     const barLen = canvas.width - op.textWidth - op.paddingRight;
     const barLength = barLen * this.scale;
-    console.log('🚀 ~ index.ts ~ TimeRangeCanvas ~ onDraw ~ this.scale:', this.scale);
+
     const barWidth = heightUnit * op.barPercent;
     this.barLen = barLen;
 
@@ -210,6 +212,8 @@ class TimeRangeCanvas {
     if (range > 24 * 3600 * 1000) {
       step = 12;
     }
+    step = Math.round(step / this.scale);
+
     const count = Math.ceil(range / (step * 3600 * 1000));
     ctx.font = `${op.fontSize}px serif`;
     ctx.fillStyle = op.fontColor;
@@ -224,7 +228,7 @@ class TimeRangeCanvas {
       const textW = ctx.measureText(text).width;
       const x = lerp(t);
       if (x < 0) continue;
-      if (x > barLength) continue;
+      if (x > barLen + 1) continue;
 
       ctx.fillText(text, x + op.textWidth - textW * 0.5, canvas.height - op.textBottom * 0.5);
     }
@@ -242,13 +246,13 @@ class TimeRangeCanvas {
         let x = lerp(a.start);
         let x1 = lerp(a.end);
         if (x < 0 && x1 < 0) return;
-        else if (x > barLength) return;
+        else if (x > barLen) return;
         else {
           if (x < 0) {
             x = 0;
           }
-          if (x1 > barLength) {
-            x1 = barLength;
+          if (x1 > barLen) {
+            x1 = barLen;
           }
         }
         if (this.active && this.active !== id) {
