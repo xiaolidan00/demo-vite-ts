@@ -23,8 +23,6 @@ function main(dataList: any[]) {
     highlight: false,
     //高亮id
     highlightId: '',
-    //dataZoom
-    dataZoom: [] as number[],
 
     //根据图例渲染
     legendMap: {} as { [k: string]: boolean }
