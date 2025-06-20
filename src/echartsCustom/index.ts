@@ -19,8 +19,15 @@ function main(dataList: any[]) {
 
   //图表状态
   const state = {
+    //是否高亮
     highlight: false,
-    highlightId: ''
+    //高亮id
+    highlightId: '',
+    //dataZoom
+    dataZoom: [] as number[],
+
+    //根据图例渲染
+    legendMap: {} as { [k: string]: boolean }
   };
 
   //组装整理数据
@@ -34,7 +41,7 @@ function main(dataList: any[]) {
       max = Math.max(max, end);
       data.push({
         name: typeItem.name,
-        value: [index, start, end, a.timeRange, index + '-' + i],
+        value: [index, start, end, a.timeRange, index + '-' + i, typeItem.name],
         itemStyle: {
           color: typeItem.color
         }
@@ -72,9 +79,11 @@ function main(dataList: any[]) {
     );
     const style = api.style();
     const darkColor = getDarkColor(style.fill, 0.5);
-    console.log('🚀 ~ index.ts ~ renderItem ~ state.highlight:', state.highlight);
-    //矩形绘制样式与范围
-    if (!state.highlight) {
+    //判断图例是否渲染
+    if (state.legendMap[api.value(5)] === false) return;
+    //高亮是否开启
+    if (state.highlight) {
+      const color = state.highlightId === api.value(4) ? style.fill : darkColor;
       return (
         rectShape && {
           type: 'rect',
@@ -83,7 +92,10 @@ function main(dataList: any[]) {
           shape: rectShape,
           //正常效果，变暗的颜色
           style: {
-            fill: style.fill
+            fill: color
+          },
+          emphasis: {
+            style: color
           }
         }
       );
@@ -97,7 +109,7 @@ function main(dataList: any[]) {
         shape: rectShape,
         //正常效果，变暗的颜色
         style: {
-          fill: state.highlightId == api.value(4) ? style.fill : darkColor
+          fill: style.fill
         }
       }
     );
@@ -108,10 +120,13 @@ function main(dataList: any[]) {
     dataZoom: {
       type: 'inside',
       //过滤模式为不过滤数据，只改变数轴范围。
-      filterMode: 'none'
+      filterMode: 'none',
+      //数据缩放范围
+      start: 0,
+      end: 100
     },
     //图例不生效
-    legend: { show: true, top: 0, data: types.map((it) => ({ name: it.name, itemStyle: { color: it.color } })) },
+    // legend: { show: true, top: 0, data: types.map((it) => ({ name: it.name, itemStyle: { color: it.color } })) },
     //信息提示
     tooltip: {
       trigger: 'item',
@@ -200,34 +215,61 @@ function main(dataList: any[]) {
   chart.setOption(option);
 
   chart.chart.on('mouseover', (ev) => {
-    console.log('🚀 ~ index.ts ~ chart.chart.on ~ ev:', ev);
-    // state.highlight = true;
-    // chart.chart.resize();
+    const data = ev.data as any;
+    state.highlightId = data.value[4];
+    state.highlight = true;
+    // chart.resize();
+    chart.setOption(option);
   });
-  // chart.chart.on('downplay', (ev) => {
-  //   state.highlight = false;
-  //   chart.chart.resize();
-  // });
+
+  chart.chart.on('mouseout', (ev) => {
+    state.highlight = false;
+    state.highlightId = '';
+    // chart.resize();
+    chart.setOption(option);
+  });
+
+  chart.chart.on('dataZoom', (ev) => {
+    const data = (ev as any).batch[0];
+    option.dataZoom.start = data.start;
+    option.dataZoom.end = data.end;
+  });
 
   const legend = document.createElement('div');
   legend.style.display = 'inline-flex';
   legend.style.alignItems = 'center';
-
+  legend.style.justifyContent = 'center';
   legend.style.width = '800px';
   legend.style.fontSize = '12px';
   legend.style.gap = '10px';
-  legend.innerHTML = types
-    .map(
-      (it, i) =>
-        `<span data-key="${i}" style="cursor:pointer;flex:1;display:inline-flex;align-items:center;text-align:center"><span style="background:${it.color};margin-right:5px;pointer-events:none" class="tooltip-item-color"></span><span style="pointer-events:none">${it.name}</span></span>`
-    )
-    .join('');
 
+  function getLegend() {
+    legend.innerHTML = types
+      .map(
+        (it, i) =>
+          `<span data-key="${
+            it.name
+          }" style="cursor:pointer;padding:0 10px;display:inline-flex;align-items:center;text-align:center"><span style="background:${
+            state.legendMap[it.name] === false ? '#efefef' : it.color
+          };margin-right:5px;pointer-events:none" class="tooltip-item-color"></span><span style="pointer-events:none">${
+            it.name
+          }</span></span>`
+      )
+      .join('');
+  }
+  getLegend();
   document.body.appendChild(legend);
   legend.addEventListener('click', (ev: MouseEvent) => {
     const target = ev.target as HTMLElement;
-    if (target) {
+
+    const name = target.dataset.key!;
+    if (state.legendMap[name] || state.legendMap[name] === undefined) {
+      state.legendMap[name] = false;
+    } else {
+      state.legendMap[name] = true;
     }
+    getLegend();
+    chart.resize();
   });
 }
 
