@@ -26,13 +26,29 @@
         overflow: hidden auto;
       }
       .left-nav > div {
-        line-height: 40px;
-        color: gray;
         height: 40px;
+        display: flex;
+        align-items: center;
+        color: gray;
+
         cursor: pointer;
         border-radius: 0 20px 20px 0px;
         background-color: white;
         padding: 0 20px;
+      }
+      .left-nav > div > img {
+        display: none;
+        height: 16px;
+        width: 16px;
+      }
+      .left-nav > div:hover > img {
+        display: inline-block;
+      }
+      .left-nav > div > span {
+        display: inline-block;
+        flex: 1;
+        height: 100%;
+        line-height: 40px;
       }
       .left-nav > div:not(:last-child) {
         margin-bottom: 10px;
@@ -59,7 +75,7 @@
     <div class="container">
       <div class="left-nav" id="nav"></div>
       <div class="right-content">
-        <iframe id="app" src="src/01/index.html"></iframe>
+        <iframe id="app"></iframe>
       </div>
     </div>
     <script type="module" src="index.ts"></script>

@@ -1,17 +1,33 @@
-import mockData from './mock.json';
 import dayjs from 'dayjs';
 import './tooltip.scss';
 import { getDarkColor } from 'xcolor-helper';
 import BaseResize from '../utils/BaseResize';
 import { debounce } from 'lodash-es';
 
+type DrawItem = {
+  start: number;
+  end: number;
+  timeRange: string;
+  name: string;
+  color: string;
+};
+type TimeBarItem = {
+  startTime: number;
+  endTime: number;
+  timeRange: string;
+  status: number;
+};
+type DataItem = {
+  name: string;
+  data: Array<TimeBarItem>;
+};
 class TimeRangeCanvas {
   resizeUtil: BaseResize;
   canvas: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
   config: any;
   active: string = '';
-  data: any[];
+
   tooltip: HTMLDivElement;
   actionMap: any[] = [];
   draw: Function;
@@ -25,14 +41,17 @@ class TimeRangeCanvas {
   scaleStep = 0.5;
   barLen = 1;
   onScale: Function;
+  min = Number.MAX_VALUE;
+  max = 0;
+  range = 0;
+  list: DrawItem[] = [];
+  data: DataItem[] = [];
 
-  constructor(canvas: HTMLCanvasElement, data: any[], config: any) {
+  constructor(canvas: HTMLCanvasElement, data: DataItem[], config: any) {
     this.canvas = canvas;
 
     this.ctx = canvas.getContext('2d')!;
     this.config = config;
-
-    this.data = data;
 
     const tooltip = document.createElement('div');
     tooltip.style.position = 'fixed';
@@ -50,7 +69,8 @@ class TimeRangeCanvas {
     canvas.addEventListener('wheel', this.onScale.bind(this));
     this.resizeUtil = new BaseResize(canvas, this.resizeCanvas.bind(this));
     this.draw = debounce(this.onDraw.bind(this), 100);
-    this.draw();
+    this.data = data;
+    this.setData(data);
   }
   onWheel(ev: WheelEvent) {
     let s = this.scale;
@@ -71,7 +91,7 @@ class TimeRangeCanvas {
     if (this.scale === 1) {
       this.moveOffset = 0;
     } else {
-      this.moveOffset = -((ev.offsetX - this.config.textWidth) / this.barLen) * this.scale * this.barLen;
+      this.moveOffset = -((ev.offsetX - this.config.paddingLeft) / this.barLen) * this.scale * this.barLen;
     }
     this.checkMove();
     this.draw();
@@ -150,64 +170,80 @@ class TimeRangeCanvas {
              </div> 
             </div>`;
   }
-  setData(data: any[]) {
-    this.data = data;
+  setConfig(config: any) {
+    this.config = config;
     this.scale = 1;
     this.moveOffset = 0;
 
     this.draw();
   }
+  setData(data: any[]) {
+    let min = Number.MAX_SAFE_INTEGER;
+    let max = 0;
+
+    const list: any[] = [];
+    data.forEach((item: any) => {
+      const draw: any[] = [];
+      item.data.forEach((a: any) => {
+        const start = new Date(a.startTime).getTime();
+        const end = new Date(a.endTime).getTime();
+        const typeItem = this.config.types[a.status];
+        draw.push({
+          start,
+          end,
+          timeRange: a.timeRange,
+          name: typeItem.name,
+          color: typeItem.color
+        });
+        min = Math.min(start, min);
+        max = Math.max(max, end);
+      });
+      list.push({
+        name: item.name,
+        data: draw
+      });
+    });
+    this.list = list;
+    this.max = max;
+    this.min = min;
+    this.range = max - min;
+    this.maxScale = Math.ceil(((max - min) / 24) * 3600 * 1000) + 1;
+    this.scale = 1;
+    this.moveOffset = 0;
+
+    this.draw();
+  }
+
   onDraw() {
     const ctx = this.ctx;
     const canvas = this.canvas;
-    const types = this.config.types;
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const op = this.config;
 
     const heightUnit = (canvas.height - op.textBottom) / this.data.length;
     const heightHalf = heightUnit * 0.5;
     const heightGap = (1 - op.barPercent) * heightUnit * 0.5;
-    const barLen = canvas.width - op.textWidth - op.paddingRight;
+    const barLen = canvas.width - op.paddingLeft - op.paddingRight;
     const barLength = barLen * this.scale;
 
     const barWidth = heightUnit * op.barPercent;
     this.barLen = barLen;
-
-    let min = Number.MAX_SAFE_INTEGER;
-    let max = 0;
-
-    const list: any[] = [];
-    this.data.forEach((item: any) => {
-      const draw: any[] = [];
-      item.data
-        .sort((a: any, b: any) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
-        .forEach((a: any) => {
-          const start = new Date(a.startTime).getTime();
-          const end = new Date(a.endTime).getTime();
-          const typeItem = types[a.pumpWaterSituation] || types[3];
-          draw.push({
-            start,
-            end,
-            timeRange: a.timeRange,
-            name: typeItem.name,
-            color: typeItem.color
-          });
-          min = Math.min(start, min);
-          max = Math.max(max, end);
-        });
-      list.push({
-        name: item.name,
-        data: draw
-      });
-    });
+    const min = this.min,
+      list = this.list;
 
     this.actionMap = [];
-    min = new Date(dayjs(min).format('YYYY-MM-DD') + ' 00:00:00').getTime();
-    max = new Date(dayjs(max).format('YYYY-MM-DD') + ' 23:59:59').getTime();
-    const range = max - min;
+
+    const range = this.range;
     const lerp = (size: number) => {
       return this.moveOffset + ((size - min) / range) * barLength;
     };
+
+    //字体样式she
+    ctx.font = `${op.fontSize}px serif`;
+    ctx.fillStyle = op.fontColor;
+    ctx.textAlign = 'left';
+    //x轴时间标签
     let step = 4;
     if (range > 24 * 3600 * 1000) {
       step = 12;
@@ -215,32 +251,26 @@ class TimeRangeCanvas {
     step = Math.round(step / this.scale);
 
     const count = Math.ceil(range / (step * 3600 * 1000));
-    ctx.font = `${op.fontSize}px serif`;
-    ctx.fillStyle = op.fontColor;
-    ctx.textAlign = 'left';
     for (let i = 0; i <= count; i++) {
       const d = dayjs(min)
         .add(i * step, 'hour')
         .format('YYYY-MM-DD HH:mm:ss');
 
       const t = new Date(d).getTime();
-      const text = dayjs(t).format('HH:mm');
+      let text = dayjs(t).format('HH:mm');
+      if (text == '00:00') text = dayjs(t).format('MM/DD');
       const textW = ctx.measureText(text).width;
       const x = lerp(t);
       if (x < 0) continue;
       if (x > barLen + 1) continue;
 
-      ctx.fillText(text, x + op.textWidth - textW * 0.5, canvas.height - op.textBottom * 0.5);
+      ctx.fillText(text, x + op.paddingLeft - textW * 0.5, canvas.height - op.textBottom * 0.5);
     }
 
     list.forEach((item: any, i: number) => {
-      ctx.font = `${op.fontSize}px serif`;
-      ctx.fillStyle = op.fontColor;
-      ctx.textAlign = 'left';
-
+      //y轴类目
       const textW = ctx.measureText(item.name).width;
-
-      ctx.fillText(item.name, op.textWidth - textW - 5, heightUnit * i + heightHalf);
+      ctx.fillText(item.name, op.paddingLeft - textW - 5, heightUnit * i + heightHalf);
       item.data.forEach((a: any, j: number) => {
         const id = i + '-' + j;
         let x = lerp(a.start);
@@ -261,7 +291,7 @@ class TimeRangeCanvas {
           ctx.fillStyle = a.color;
         }
 
-        const left = op.textWidth + x;
+        const left = op.paddingLeft + x;
         const top = heightUnit * i + heightGap;
         const w = x1 - x;
         if (w <= 0) return;
@@ -280,7 +310,7 @@ class TimeRangeCanvas {
   resizeCanvas() {
     this.canvas.width = this.canvas.parentElement!.offsetWidth || this.config.width;
     this.canvas.height = this.canvas.parentElement!.offsetHeight || this.config.height;
-    this.draw();
+    if (this.draw) this.draw();
   }
   destroy() {
     document.body.removeChild(this.tooltip);
@@ -293,23 +323,52 @@ class TimeRangeCanvas {
   }
 }
 
+//不同状态名称和颜色设置
+const types = [
+  { name: '运行', color: '#32CD32' }, // 0
+  { name: '离线', color: '#808080' }, // 1
+  { name: '报警', color: '#FF6347' }, // 2
+  { name: '静止', color: '#1E90FF' } // 3
+];
+
+const totalTime = 3600 * 1000 * 24 * 3;
+const dataList = [];
+//生成模拟数据
+for (let i = 1; i <= 5; i++) {
+  const items = [];
+  const count = Math.round(Math.random() * 10) + 5;
+  let before = new Date('2025-01-01 00:00:00').getTime();
+  let status = Math.round(Math.random() * 99) % types.length;
+  const unit = totalTime / count;
+  for (let j = 0; j < count; j++) {
+    const t = unit + before;
+    items.push({
+      startTime: before,
+      endTime: t,
+      timeRange: Number((t - before) / 3600000).toFixed(2),
+      status: status
+    });
+    status = (status + (Math.floor(Math.random() * 99) % 3 ? 3 : 1)) % types.length;
+    before = t;
+  }
+  dataList.push({
+    name: '设备' + i,
+    data: items
+  });
+}
+
 const canvas = document.querySelector('canvas')!;
 
-const timeBar = new TimeRangeCanvas(canvas, mockData, {
+const timeBar = new TimeRangeCanvas(canvas, dataList, {
   width: 800,
   height: 800,
-  data: mockData,
+  data: dataList,
   timeType: '24',
-  textWidth: 30,
+  paddingLeft: 30,
   textBottom: 20,
   barPercent: 0.6,
   fontSize: 12,
   fontColor: 'gray',
   paddingRight: 20,
-  types: [
-    { name: '停止', color: '#C9CDD4' }, // 0
-    { name: '运行', color: '#00B42A' }, // 1
-    { name: '故障', color: '#F53F3F' }, // 2
-    { name: '未知', color: '#EFEFEF' } // 3
-  ]
+  types
 });

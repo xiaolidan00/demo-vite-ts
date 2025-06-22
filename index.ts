@@ -9,7 +9,7 @@ const hash = window.location.hash.substring(1);
 
 let current = 0;
 for (const k in urls) {
-  str += `<div index="${index}" key="${k}">${k}</div>`;
+  str += `<div ><span index="${index}" key="${k}">${k}</span><img key="${k}"  src="link.svg"></div>`;
   if (hash && hash == k) {
     current = index;
   }
@@ -18,28 +18,24 @@ for (const k in urls) {
 nav.innerHTML = str;
 
 if (hash) {
-  const page = nav.children[current] as HTMLDivElement;
-  setPath(page);
+  const el = nav.children[current];
+  app.src = `src/${hash}/index.html`;
+  el.classList.add('active');
 } else {
   const first = nav.firstElementChild as HTMLDivElement;
-  setPath(first);
+  first.classList.add('active');
 }
 
-index = 0;
-function setPath(el: HTMLElement) {
-  const key = el.getAttribute('key');
-  if (key) {
-    const beforeEl = nav.children[index];
-    if (beforeEl) beforeEl.classList.remove('active');
-
-    const path = urls[key as keyof typeof urls];
-    app.src = path.replace('.ts', '.html');
-    window.location.hash = key;
-    el.classList.add('active');
-    index = Number(el.getAttribute('index') || '0');
-  }
-}
 nav.onclick = (ev: MouseEvent) => {
   const target = ev.target as HTMLElement;
-  setPath(target);
+  if (target.nodeName.toLowerCase() === 'span') {
+    const key = target.getAttribute('key');
+    console.log('🚀 ~ key:', key);
+    app.src = `src/${key}/index.html`;
+    window.location.hash = '#' + key;
+    target.classList.add('active');
+    current = Number(target.getAttribute('index') || '0');
+  } else if (target.nodeName.toLowerCase() === 'img') {
+    window.open(`src/${target.getAttribute('key')}/index.html`);
+  }
 };
