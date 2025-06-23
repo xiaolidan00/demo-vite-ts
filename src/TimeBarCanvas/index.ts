@@ -10,20 +10,26 @@ type DrawItem = {
   timeRange: string;
   name: string;
   color: string;
+  darkColor: string;
 };
-type TimeBarItem = {
+type DrawItems = {
+  name: string;
+  data: Array<DrawItem>;
+};
+type DataItem = {
   startTime: number;
   endTime: number;
   timeRange: string;
   status: number;
 };
-type DataItem = {
+type DataItems = {
   name: string;
-  data: Array<TimeBarItem>;
+  data: Array<DataItem>;
 };
 class TimeRangeCanvas {
   resizeUtil: BaseResize;
   canvas: HTMLCanvasElement;
+  container: HTMLElement;
   ctx: CanvasRenderingContext2D;
   config: any;
   active: string = '';
@@ -44,15 +50,21 @@ class TimeRangeCanvas {
   min = Number.MAX_VALUE;
   max = 0;
   range = 0;
-  list: DrawItem[] = [];
-  data: DataItem[] = [];
-
-  constructor(canvas: HTMLCanvasElement, data: DataItem[], config: any) {
+  list: DrawItems[] = [];
+  data: DataItems[] = [];
+  legendMap: { [k: string]: boolean } = {};
+  legend: HTMLElement;
+  constructor(container: HTMLElement, data: DataItems[], config: any) {
+    this.container = container;
+    const canvas = document.createElement('canvas');
+    canvas.width = container.offsetWidth;
+    canvas.height = container.offsetHeight - 20;
+    container.appendChild(canvas);
     this.canvas = canvas;
 
     this.ctx = canvas.getContext('2d')!;
     this.config = config;
-
+    this.getTypesDarkColor();
     const tooltip = document.createElement('div');
     tooltip.style.position = 'fixed';
     tooltip.style.display = 'none';
@@ -62,16 +74,62 @@ class TimeRangeCanvas {
     document.body.appendChild(tooltip);
     this.onScale = debounce(this.onWheel.bind(this), 100);
     canvas.addEventListener('pointerdown', this.onMoveStart.bind(this));
-
     canvas.addEventListener('pointermove', this.onHover.bind(this));
     canvas.addEventListener('pointerup', this.onMoveEnd.bind(this));
+    document.addEventListener('pointerup', this.onMoveEnd.bind(this));
     canvas.addEventListener('pointerleave', this.onMoveEnd.bind(this));
     canvas.addEventListener('wheel', this.onScale.bind(this));
+
+    const legend = document.createElement('div');
+    legend.style.display = 'inline-flex';
+    legend.style.alignItems = 'center';
+    legend.style.justifyContent = 'center';
+    legend.style.width = container.offsetWidth + 'px';
+    legend.style.height = '20px';
+    legend.style.fontSize = '12px';
+    legend.style.gap = '10px';
+    this.legend = legend;
+    legend.addEventListener('click', this.onClickLegend.bind(this));
+    this.getLegend();
+    container.appendChild(legend);
+
     this.resizeUtil = new BaseResize(canvas, this.resizeCanvas.bind(this));
     this.draw = debounce(this.onDraw.bind(this), 100);
     this.data = data;
     this.setData(data);
   }
+  getTypesDarkColor() {
+    this.config.types.forEach((item: any) => {
+      item.darkColor = getDarkColor(item.color, 0.5);
+    });
+  }
+  onClickLegend(ev: MouseEvent) {
+    const target = ev.target as HTMLElement;
+
+    const name = target.dataset.key!;
+    if (this.legendMap[name] || this.legendMap[name] === undefined) {
+      this.legendMap[name] = false;
+    } else {
+      this.legendMap[name] = true;
+    }
+    this.getLegend();
+    this.draw();
+  }
+  getLegend() {
+    this.legend.innerHTML = this.config.types
+      .map(
+        (it: (typeof this.config.types)[0], i: number) =>
+          `<span data-key="${
+            it.name
+          }" style="cursor:pointer;padding:0 10px;display:inline-flex;align-items:center;text-align:center"><span style="background:${
+            this.legendMap[it.name] === false ? '#efefef' : it.color
+          };margin-right:5px;pointer-events:none" class="tooltip-item-color"></span><span style="pointer-events:none">${
+            it.name
+          }</span></span>`
+      )
+      .join('');
+  }
+  //滚轮缩放
   onWheel(ev: WheelEvent) {
     let s = this.scale;
     if (ev.deltaY > 0) {
@@ -94,6 +152,8 @@ class TimeRangeCanvas {
       this.moveOffset = -((ev.offsetX - this.config.paddingLeft) / this.barLen) * this.scale * this.barLen;
     }
     this.checkMove();
+    this.active = '';
+    this.tooltip.style.display = 'none';
     this.draw();
   }
   onMoveEnd() {
@@ -108,6 +168,7 @@ class TimeRangeCanvas {
     this.moveStart = ev.offsetX;
     this.hideTooltip();
   }
+  //检查移动范围
   checkMove() {
     if (this.moveOffset > 0) {
       this.moveOffset = 0;
@@ -124,9 +185,11 @@ class TimeRangeCanvas {
 
       this.checkMove();
       this.moveStart = x;
-
+      this.active = '';
+      this.tooltip.style.display = 'none';
       return;
     }
+    if (this.isMove) console.log('move');
     const tooltip = this.tooltip;
     const bound = this.canvas.getBoundingClientRect();
 
@@ -134,6 +197,7 @@ class TimeRangeCanvas {
       const item = this.actionMap[i];
       if (x >= item.left && x <= item.left + item.w && y >= item.top && y <= item.h + item.top) {
         if (this.active != item.id) {
+          //当前悬浮条状
           this.active = item.id;
 
           tooltip.innerHTML = this.tooltipFormatter(item.data);
@@ -174,17 +238,19 @@ class TimeRangeCanvas {
     this.config = config;
     this.scale = 1;
     this.moveOffset = 0;
-
+    this.getTypesDarkColor();
+    this.legendMap = {};
+    this.getLegend();
     this.draw();
   }
   setData(data: any[]) {
     let min = Number.MAX_SAFE_INTEGER;
     let max = 0;
 
-    const list: any[] = [];
-    data.forEach((item: any) => {
-      const draw: any[] = [];
-      item.data.forEach((a: any) => {
+    const list: DrawItems[] = [];
+    data.forEach((item: DataItems) => {
+      const draw: DrawItem[] = [];
+      item.data.forEach((a: DataItem) => {
         const start = new Date(a.startTime).getTime();
         const end = new Date(a.endTime).getTime();
         const typeItem = this.config.types[a.status];
@@ -193,7 +259,8 @@ class TimeRangeCanvas {
           end,
           timeRange: a.timeRange,
           name: typeItem.name,
-          color: typeItem.color
+          color: typeItem.color,
+          darkColor: typeItem.darkColor
         });
         min = Math.min(start, min);
         max = Math.max(max, end);
@@ -205,9 +272,12 @@ class TimeRangeCanvas {
     });
     this.list = list;
     this.max = max;
-    this.min = min;
+    //向下取整点时间
+    this.min = Math.floor(min / (3600 * 1000)) * 3600 * 1000;
     this.range = max - min;
+    //最大缩放等级
     this.maxScale = Math.ceil(((max - min) / 24) * 3600 * 1000) + 1;
+    //重置缩放等级和数据缩放移动
     this.scale = 1;
     this.moveOffset = 0;
 
@@ -215,41 +285,53 @@ class TimeRangeCanvas {
   }
 
   onDraw() {
+    const op = this.config;
     const ctx = this.ctx;
     const canvas = this.canvas;
 
+    //清空绘制内容
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const op = this.config;
 
-    const heightUnit = (canvas.height - op.textBottom) / this.data.length;
-    const heightHalf = heightUnit * 0.5;
-    const heightGap = (1 - op.barPercent) * heightUnit * 0.5;
+    //条状展示长度
     const barLen = canvas.width - op.paddingLeft - op.paddingRight;
+    //条状长度
     const barLength = barLen * this.scale;
 
-    const barWidth = heightUnit * op.barPercent;
     this.barLen = barLen;
+
+    //条状宽度
+    const heightUnit = (canvas.height - op.textBottom) / this.data.length;
+    const heightHalf = heightUnit * 0.5;
+    //间隔
+    const heightGap = (1 - op.barPercent) * heightUnit * 0.5;
+    //条状宽度
+    const barWidth = heightUnit * op.barPercent;
+
     const min = this.min,
       list = this.list;
 
+    //清空动作收集
     this.actionMap = [];
 
     const range = this.range;
+    //大小位置映射
     const lerp = (size: number) => {
       return this.moveOffset + ((size - min) / range) * barLength;
     };
 
-    //字体样式she
+    //字体样式
     ctx.font = `${op.fontSize}px serif`;
     ctx.fillStyle = op.fontColor;
     ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
     //x轴时间标签
     let step = 4;
     if (range > 24 * 3600 * 1000) {
       step = 12;
     }
+    //整点时间间隔大小
     step = Math.round(step / this.scale);
-
+    //整点时间间隔数量
     const count = Math.ceil(range / (step * 3600 * 1000));
     for (let i = 0; i <= count; i++) {
       const d = dayjs(min)
@@ -257,27 +339,40 @@ class TimeRangeCanvas {
         .format('YYYY-MM-DD HH:mm:ss');
 
       const t = new Date(d).getTime();
+      //时间标签格式
       let text = dayjs(t).format('HH:mm');
       if (text == '00:00') text = dayjs(t).format('MM/DD');
-      const textW = ctx.measureText(text).width;
+      //时间标签位置
       const x = lerp(t);
+      //数据缩放时只绘制可视范围内容的标签文本
       if (x < 0) continue;
       if (x > barLen + 1) continue;
-
+      //标签居中
+      const textW = ctx.measureText(text).width;
       ctx.fillText(text, x + op.paddingLeft - textW * 0.5, canvas.height - op.textBottom * 0.5);
     }
 
-    list.forEach((item: any, i: number) => {
+    list.forEach((item: DrawItems, i: number) => {
       //y轴类目
+      ctx.font = `${op.fontSize}px serif`;
+      ctx.fillStyle = op.fontColor;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'left';
+      //类目居中
       const textW = ctx.measureText(item.name).width;
       ctx.fillText(item.name, op.paddingLeft - textW - 5, heightUnit * i + heightHalf);
-      item.data.forEach((a: any, j: number) => {
-        const id = i + '-' + j;
+      //绘制时间范围条状
+      item.data.forEach((a: DrawItem, j: number) => {
+        //判断图例是否显示
+        if (this.legendMap[a.name] === false) return;
+
         let x = lerp(a.start);
         let x1 = lerp(a.end);
+        //数据缩放时只绘制可视范围内的矩形
         if (x < 0 && x1 < 0) return;
         else if (x > barLen) return;
         else {
+          //一部分在可视范围内的调整开始结束坐标位置
           if (x < 0) {
             x = 0;
           }
@@ -285,17 +380,21 @@ class TimeRangeCanvas {
             x1 = barLen;
           }
         }
+
+        const w = x1 - x;
+        if (w <= 0) return;
+        const left = op.paddingLeft + x;
+        const top = heightUnit * i + heightGap;
+        const id = i + '-' + j;
+        //悬浮时，其他矩形变暗
         if (this.active && this.active !== id) {
-          ctx.fillStyle = getDarkColor(a.color, 0.5);
+          ctx.fillStyle = a.darkColor;
         } else {
           ctx.fillStyle = a.color;
         }
-
-        const left = op.paddingLeft + x;
-        const top = heightUnit * i + heightGap;
-        const w = x1 - x;
-        if (w <= 0) return;
         ctx.fillRect(left, top, w, barWidth);
+
+        //缓存矩形范围，用于悬浮动作判断
         this.actionMap.push({
           id,
           data: a,
@@ -308,17 +407,21 @@ class TimeRangeCanvas {
     });
   }
   resizeCanvas() {
-    this.canvas.width = this.canvas.parentElement!.offsetWidth || this.config.width;
-    this.canvas.height = this.canvas.parentElement!.offsetHeight || this.config.height;
+    this.canvas.width = this.container.offsetWidth || this.config.width;
+    this.canvas.height = (this.container.offsetHeight || this.config.height) - 20;
     if (this.draw) this.draw();
   }
   destroy() {
-    document.body.removeChild(this.tooltip);
     const canvas = this.canvas;
-    canvas.addEventListener('pointermove', this.onHover.bind(this));
-    canvas.addEventListener('pointerup', this.onMoveEnd.bind(this));
-    canvas.addEventListener('pointerleave', this.onMoveEnd.bind(this));
-    canvas.addEventListener('wheel', this.onScale.bind(this));
+    canvas.removeEventListener('pointerdown', this.onMoveStart.bind(this));
+    canvas.removeEventListener('pointermove', this.onHover.bind(this));
+    canvas.removeEventListener('pointerup', this.onMoveEnd.bind(this));
+    document.removeEventListener('pointerup', this.onMoveEnd.bind(this));
+    canvas.removeEventListener('pointerleave', this.onMoveEnd.bind(this));
+    canvas.removeEventListener('wheel', this.onScale.bind(this));
+    this.legend.removeEventListener('click', this.onClickLegend.bind(this));
+    document.body.removeChild(this.tooltip);
+    this.container.removeChild(this.legend);
     this.destroy();
   }
 }
@@ -336,7 +439,7 @@ const dataList = [];
 //生成模拟数据
 for (let i = 1; i <= 5; i++) {
   const items = [];
-  const count = Math.round(Math.random() * 10) + 5;
+  const count = (i % 3) + 5;
   let before = new Date('2025-01-01 00:00:00').getTime();
   let status = Math.round(Math.random() * 99) % types.length;
   const unit = totalTime / count;
@@ -357,14 +460,14 @@ for (let i = 1; i <= 5; i++) {
   });
 }
 
-const canvas = document.querySelector('canvas')!;
+const container = document.getElementById('container')!;
 
-const timeBar = new TimeRangeCanvas(canvas, dataList, {
+const timeBar = new TimeRangeCanvas(container, dataList, {
   width: 800,
   height: 800,
   data: dataList,
   timeType: '24',
-  paddingLeft: 30,
+  paddingLeft: 40,
   textBottom: 20,
   barPercent: 0.6,
   fontSize: 12,
