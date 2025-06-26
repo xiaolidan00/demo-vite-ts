@@ -1,15 +1,15 @@
 import fs from 'node:fs';
 import { defineConfig } from 'vite';
 
-function readSrc() {
+function readSrc(rootPath: string) {
   const inputMap: { [n: string]: string } = {};
-  const files = fs.readdirSync('./src');
+  const files = fs.readdirSync(rootPath);
   files.forEach((item) => {
-    if (!['utils'].includes(item)) inputMap[item] = `src/${item}/index.ts`;
+    if (!['utils'].includes(item)) inputMap[item] = `${rootPath}/${item}/index.ts`;
   });
   return inputMap;
 }
-const pages = readSrc();
+const pages = readSrc('./src');
 fs.writeFileSync('./urls.ts', 'export default ' + JSON.stringify(pages));
 
 export default defineConfig(({ mode }) => {
