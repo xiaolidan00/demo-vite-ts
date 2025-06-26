@@ -27,17 +27,15 @@ class PopperBase {
     container.style.position = 'fixed';
     container.style.zIndex = '3000';
     container.style.display = 'none';
+    document.addEventListener('click', this.onBody.bind(this));
 
     container.addEventListener('mouseenter', this.onShow.bind(this));
-    container.addEventListener('mouseleave', this.onHide.bind(this));
     container.addEventListener('mouseover', this.onShow.bind(this));
-
-    el.addEventListener('focus', this.onShow.bind(this));
 
     el.addEventListener('click', this.onShow.bind(this));
 
     el.addEventListener('mouseenter', this.onEnter.bind(this));
-    el.addEventListener('mouseleave', this.onHide.bind(this));
+    el.addEventListener('mouseleave', this.onLeave.bind(this));
     this.resize = debounce(this.onResize.bind(this), 100);
     this.resizeUtil = new BaseResize(el, this.resize.bind(this));
   }
@@ -52,7 +50,6 @@ class PopperBase {
     if (this.config.hoverCb) {
       this.config.hoverCb(this.isHover);
     }
-    this.onBlur();
   }
   showHideAction() {
     this.container.style.display = this.isShow ? 'block' : 'none';
@@ -106,15 +103,30 @@ class PopperBase {
       this.showHideAction();
     } else this.onShow();
   }
+  onBody(ev: MouseEvent) {
+    let target = ev.target as HTMLElement;
 
+    while (target.parentElement) {
+      if (target === this.el || target === this.container) return;
+      target = target.parentElement as HTMLElement;
+    }
+
+    if (this.closeTimeout) {
+      clearTimeout(this.closeTimeout);
+    }
+
+    this.isShow = false;
+    this.showHideAction();
+  }
   onHide() {
     if (this.closeTimeout) {
       clearTimeout(this.closeTimeout);
     }
+
     this.closeTimeout = setTimeout(() => {
       this.isShow = false;
       this.showHideAction();
-    }, 1000);
+    }, 200);
   }
   onBlur() {
     if (this.el) this.el.blur();
@@ -125,12 +137,11 @@ class PopperBase {
     const el = this.el;
 
     container.removeEventListener('mouseenter', this.onShow.bind(this));
-    container.removeEventListener('mouseleave', this.onHide.bind(this));
     container.removeEventListener('mouseover', this.onShow.bind(this));
-    el.removeEventListener('focus', this.onShow.bind(this));
     el.removeEventListener('click', this.onShow.bind(this));
+    el.removeEventListener('mouseleave', this.onLeave.bind(this));
     el.removeEventListener('mouseenter', this.onEnter.bind(this));
-    el.removeEventListener('mouseleave', this.onHide.bind(this));
+    document.removeEventListener('click', this.onBody.bind(this));
     if (this.resizeUtil) {
       this.resizeUtil.destroy();
     }
@@ -184,6 +195,6 @@ conatiner.addEventListener('click', (ev: MouseEvent) => {
     input.value = target.title;
     beforeActive = target.title;
     if (!target.classList.contains('active')) target.classList.add('active');
-    mypopper.toggle();
+    // mypopper.toggle();
   }
 });
