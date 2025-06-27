@@ -23,7 +23,9 @@ class ViewPDF {
     const pdf = await task.promise;
     this.maxNum = pdf.numPages;
     this.pdf = pdf;
+    console.log('🚀 ~ index.ts ~ ViewPDF ~ init ~ pdf:', pdf);
     this.loadPage();
+    return pdf;
   }
   async loadPage(currentPage: number = 1, scale: number = 1) {
     if (

@@ -20,7 +20,10 @@
   "dependencies": {
     "dayjs": "^1.11.13",
     "echarts": "^5.6.0",
+    "exceljs": "^4.4.0",
     "lodash-es": "^4.17.21",
+    "mammoth": "^1.9.1",
+    "normalize.css": "^8.0.1",
     "pdfjs-dist": "^5.3.31",
     "xcolor-helper": "^1.0.3"
   }

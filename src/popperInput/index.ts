@@ -104,19 +104,21 @@ class PopperBase {
     } else this.onShow();
   }
   onBody(ev: MouseEvent) {
-    let target = ev.target as HTMLElement;
+    if (this.isShow) {
+      let target = ev.target as HTMLElement;
 
-    while (target.parentElement) {
-      if (target === this.el || target === this.container) return;
-      target = target.parentElement as HTMLElement;
+      while (target.parentElement) {
+        if (target === this.el || target === this.container) return;
+        target = target.parentElement as HTMLElement;
+      }
+
+      if (this.closeTimeout) {
+        clearTimeout(this.closeTimeout);
+      }
+
+      this.isShow = false;
+      this.showHideAction();
     }
-
-    if (this.closeTimeout) {
-      clearTimeout(this.closeTimeout);
-    }
-
-    this.isShow = false;
-    this.showHideAction();
   }
   onHide() {
     if (this.closeTimeout) {
