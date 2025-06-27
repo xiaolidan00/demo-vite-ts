@@ -40,4 +40,8 @@
 
 ## popper 下拉输入框
 
-`popperInput`
+`popperInput/`
+
+## 预览 PDF pdfjs
+
+`viewPdf/`
