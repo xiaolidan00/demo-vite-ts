@@ -54,6 +54,8 @@ class TimeRangeCanvas {
   data: DataItems[] = [];
   legendMap: { [k: string]: boolean } = {};
   legend: HTMLElement;
+  showTooltip: Function;
+  isLock = false;
   constructor(container: HTMLElement, data: DataItems[], config: any) {
     this.container = container;
     const canvas = document.createElement('canvas');
@@ -95,6 +97,7 @@ class TimeRangeCanvas {
 
     this.resizeUtil = new BaseResize(canvas, this.resizeCanvas.bind(this));
     this.draw = debounce(this.onDraw.bind(this), 100);
+    this.showTooltip = debounce(this.onTooltip.bind(this), 100);
     this.data = data;
     this.setData(data);
   }
@@ -131,6 +134,7 @@ class TimeRangeCanvas {
   }
   //滚轮缩放
   onWheel(ev: WheelEvent) {
+    if (this.isLock) return;
     let s = this.scale;
     if (ev.deltaY > 0) {
       //down
@@ -145,16 +149,19 @@ class TimeRangeCanvas {
         s = this.maxScale;
       }
     }
-    this.scale = s;
-    if (this.scale === 1) {
-      this.moveOffset = 0;
-    } else {
-      this.moveOffset = -((ev.offsetX - this.config.paddingLeft) / this.barLen) * this.scale * this.barLen;
-    }
-    this.checkMove();
+
     this.active = '';
     this.tooltip.style.display = 'none';
-    this.draw();
+    if (this.scale !== s) {
+      this.scale = s;
+      if (s === 1) {
+        this.moveOffset = 0;
+      } else {
+        this.moveOffset = -((ev.offsetX - this.config.paddingLeft) / this.barLen) * s * this.barLen;
+      }
+      this.checkMove();
+      this.draw();
+    }
   }
   onMoveEnd() {
     if (this.isMove && this.scale > 1) {
@@ -177,8 +184,8 @@ class TimeRangeCanvas {
     }
   }
   onHover(ev: PointerEvent) {
+    if (this.isLock) return;
     const x = ev.offsetX;
-    const y = ev.offsetY;
 
     if (this.isMove) {
       this.moveOffset += (ev.offsetX - this.moveStart) * this.moveStep;
@@ -189,7 +196,11 @@ class TimeRangeCanvas {
       this.tooltip.style.display = 'none';
       return;
     }
-    if (this.isMove) console.log('move');
+    this.showTooltip(ev);
+  }
+  onTooltip(ev: MouseEvent) {
+    const x = ev.offsetX;
+    const y = ev.offsetY;
     const tooltip = this.tooltip;
     const bound = this.canvas.getBoundingClientRect();
 
@@ -213,6 +224,7 @@ class TimeRangeCanvas {
     this.hideTooltip();
   }
   hideTooltip() {
+    if (this.isLock) return;
     this.tooltip.style.display = 'none';
     this.active = '';
     this.draw();
@@ -276,7 +288,8 @@ class TimeRangeCanvas {
     this.min = Math.floor(min / (3600 * 1000)) * 3600 * 1000;
     this.range = max - min;
     //最大缩放等级
-    this.maxScale = Math.ceil(((max - min) / 24) * 3600 * 1000) + 1;
+    this.maxScale = Math.ceil((max - min) / (24 * 3600000)) + 1;
+
     //重置缩放等级和数据缩放移动
     this.scale = 1;
     this.moveOffset = 0;
@@ -285,6 +298,8 @@ class TimeRangeCanvas {
   }
 
   onDraw() {
+    if (this.isLock) return;
+    this.isLock = true;
     const op = this.config;
     const ctx = this.ctx;
     const canvas = this.canvas;
@@ -395,16 +410,18 @@ class TimeRangeCanvas {
         ctx.fillRect(left, top, w, barWidth);
 
         //缓存矩形范围，用于悬浮动作判断
-        this.actionMap.push({
-          id,
-          data: a,
-          left: left,
-          top: top,
-          w,
-          h: barWidth
-        });
+        if (w >= 1)
+          this.actionMap.push({
+            id,
+            data: a,
+            left: left,
+            top: top,
+            w,
+            h: barWidth
+          });
       });
     });
+    this.isLock = false;
   }
   resizeCanvas() {
     this.canvas.width = this.container.offsetWidth || this.config.width;
