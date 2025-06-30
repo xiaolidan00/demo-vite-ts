@@ -258,7 +258,7 @@ class TimeRangeCanvas {
   setData(data: any[]) {
     let min = Number.MAX_SAFE_INTEGER;
     let max = 0;
-
+    this.data = data;
     const list: DrawItems[] = [];
     data.forEach((item: DataItems) => {
       const draw: DrawItem[] = [];
