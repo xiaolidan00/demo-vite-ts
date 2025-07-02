@@ -29,12 +29,17 @@ if (hash) {
 nav.onclick = (ev: MouseEvent) => {
   const target = ev.target as HTMLElement;
   if (target.nodeName.toLowerCase() === 'span') {
-    const key = target.getAttribute('key');
-    console.log('🚀 ~ key:', key);
-    app.src = `src/${key}/index.html`;
-    window.location.hash = '#' + key;
-    target.classList.add('active');
-    current = Number(target.getAttribute('index') || '0');
+    const index = Number(target.getAttribute('index') || '0');
+    if (current !== index) {
+      nav.children[current].classList.remove('active');
+      current = index;
+
+      const key = target.getAttribute('key');
+      console.log('🚀 ~ key:', key);
+      app.src = `src/${key}/index.html`;
+      window.location.hash = '#' + key;
+      nav.children[index].classList.add('active');
+    }
   } else if (target.nodeName.toLowerCase() === 'img') {
     window.open(`src/${target.getAttribute('key')}/index.html`);
   }
