@@ -1,5 +1,6 @@
 import { type CanvasDrawType, CanvasRender } from './CanvasRender';
-import { debounce, nextTick } from './util';
+import { nextTick } from './util';
+import { debounce } from 'lodash-es';
 import { SphericalMercator, type LngLatXY } from './SphericalMercator';
 import { EventEmitter } from './EventEmitter';
 
