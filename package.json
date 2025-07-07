@@ -25,6 +25,7 @@
     "mammoth": "^1.9.1",
     "normalize.css": "^8.0.1",
     "pdfjs-dist": "^5.3.31",
+    "proj4": "^2.19.5",
     "xcolor-helper": "^1.0.3"
   }
 }

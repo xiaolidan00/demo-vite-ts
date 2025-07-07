@@ -1,4 +1,4 @@
-import { debounce } from '../map/util';
+import { debounce } from 'lodash-es';
 import BaseResize from '../utils/BaseResize';
 import './index.scss';
 type PopperBaseConfig = {

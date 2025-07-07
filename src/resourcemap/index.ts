@@ -1,11 +1,21 @@
 import { debounce } from 'lodash-es';
-import BaseResize from '../utils/BaseResize';
+import proj4 from 'proj4';
+//https://epsg.io/3857
+//https://epsg.io/3415
+proj4.defs('EPSG:3415', '+proj=lcc +lat_0=0 +lon_0=110 +lat_1=25 +lat_2=47 +ellps=WGS84 +units=m +no_defs +type=crs');
+const xy = proj4('EPSG:3415').forward([116, 39]);
+console.log(xy.map((it) => it / 16000));
+console.log(proj4('EPSG:3415').inverse(xy));
+console.log(proj4('EPSG:3415').forward([110, 25]));
+console.log(proj4('EPSG:3415').forward([70, 25]));
+console.log(proj4('EPSG:3415').forward([140, 25]));
 type LngLatXY = [number, number];
 interface MapOptions {
   container: HTMLElement;
   center?: LngLatXY;
   scale?: number;
 }
+
 class ResourceMap {
   container: HTMLElement;
   canvas: HTMLCanvasElement;
@@ -74,6 +84,20 @@ class ResourceMap {
       this.drawLayer();
     }
   }
+  drawPoint() {
+    this.ctx.fillStyle = 'blue';
+    const c = proj4('EPSG:3415')
+      .forward(this.center)
+      .map((a) => a / 16000);
+    const s = this.scale * 0.1;
+    console.log('🚀 ~ index.ts ~ ResourceMap ~ drawPoint ~ c:');
+
+    const xy = [
+      this.move.offsetx + (c[0] + (this.imageWidth - 218 * 2) * 0.5 + 218) * s,
+      this.move.offsety + (240 + (this.imageHeight - 240 * 2) - c[1]) * s
+    ];
+    this.ctx.fillRect(xy[0], xy[1], 10, 10);
+  }
   checkMove() {
     // console.log('🚀 ~ ResourceMap ~ checkMove ~ this.move.offsetx:', this.move.offsetx, this.move.offsety);
     const s = this.scale * 0.1;
@@ -107,21 +131,6 @@ class ResourceMap {
         this.move.offsety = 0;
       }
     }
-
-    // if (this.move.offsetx < 0) {
-
-    //   this.move.offsetx = 0;
-    // }
-    // if (this.move.offsety < 0) {
-    //   this.move.offsety = 0;
-    // }
-    // const s=10 / this.scale;
-    // if (this.move.offsetx >) {
-    //   this.move.offsetx = 0;
-    // }
-    // if (this.move.offsety>) {
-    //   this.move.offsety = 0;
-    // }
   }
   onMoveStart(ev: PointerEvent) {
     this.move.enable = true;
@@ -165,6 +174,7 @@ class ResourceMap {
         this.imageHeight * this.scale * 0.1
       );
     }
+    this.drawPoint();
   }
 
   onResize() {

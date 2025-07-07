@@ -29,6 +29,9 @@ importers:
       pdfjs-dist:
         specifier: ^5.3.31
         version: 5.3.31
+      proj4:
+        specifier: ^2.19.5
+        version: 2.19.5
       xcolor-helper:
         specifier: ^1.0.3
         version: 1.0.3
@@ -619,6 +622,9 @@ packages:
     engines: {node: '>=12.0.0'}
     hasBin: true
 
+  mgrs@1.0.0:
+    resolution: {integrity: sha512-awNbTOqCxK1DBGjalK3xqWIstBZgN6fxsMSiXLs9/spqWkF2pAhb2rrYCFSsr1/tT7PhcDGjZndG8SWYn0byYA==}
+
   minimatch@3.1.2:
     resolution: {integrity: sha512-J7p63hRiAjw1NDEww1W7i37+ByIrOWO5XQQAzZ3VOcL0PNybwpfmV/N05zFAzwQ9USyEcX6t3UO+K5aqBQOIHw==}
 
@@ -671,6 +677,9 @@ packages:
 
   process-nextick-args@2.0.1:
     resolution: {integrity: sha512-3ouUOpQhtgrbOa17J7+uxOTpITYWaGP7/AhoR3+A+/1e9skrzelGi/dXzEYyvbxubEF6Wn2ypscTKiKJFFn1ag==}
+
+  proj4@2.19.5:
+    resolution: {integrity: sha512-hFn7GJwUZ1YiAAfSfur7VRgiH0swIZFxJb7UZ7C4E9tbqyozSn+SI9ZxFgFKmUldtY3tVTBvylJhwfD+O3pHQw==}
 
   readable-stream@2.3.8:
     resolution: {integrity: sha512-8p0AUk4XODgIewSi0l8Epjs+EVnWiK7NoDIEGU0HhE7+ZyY8D1IMY7odu5lRrFXGg71L15KG8QrPmum45RTtdA==}
@@ -914,6 +923,9 @@ packages:
         optional: true
       yaml:
         optional: true
+
+  wkt-parser@1.5.2:
+    resolution: {integrity: sha512-1ZUiV1FTwSiSrgWzV9KXJuOF2BVW91KY/mau04BhnmgOdroRQea7Q0s5TVqwGLm0D2tZwObd/tBYXW49sSxp3Q==}
 
   wrappy@1.0.2:
     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
@@ -1432,6 +1444,8 @@ snapshots:
       underscore: 1.13.7
       xmlbuilder: 10.1.1
 
+  mgrs@1.0.0: {}
+
   minimatch@3.1.2:
     dependencies:
       brace-expansion: 1.1.12
@@ -1475,6 +1489,11 @@ snapshots:
       source-map-js: 1.2.1
 
   process-nextick-args@2.0.1: {}
+
+  proj4@2.19.5:
+    dependencies:
+      mgrs: 1.0.0
+      wkt-parser: 1.5.2
 
   readable-stream@2.3.8:
     dependencies:
@@ -1688,6 +1707,8 @@ snapshots:
       '@types/node': 22.14.0
       fsevents: 2.3.3
       sass-embedded: 1.89.2
+
+  wkt-parser@1.5.2: {}
 
   wrappy@1.0.2: {}
 
