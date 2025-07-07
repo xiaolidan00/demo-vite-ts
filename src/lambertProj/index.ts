@@ -36,12 +36,12 @@ fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000.json')
     const ctx = canvas.getContext('2d')!;
     const half = canvas.width * 0.5;
     const data = {
-      lat0: 21.5,
+      lat0: 21,
       lat1: 38,
       lat2: 38.4,
       lng0: 110,
       left: 28.7,
-      top: 495
+      top: 490.1
     };
 
     const drawGeo = () => {
