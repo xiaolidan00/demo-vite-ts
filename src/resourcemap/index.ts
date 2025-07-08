@@ -2,13 +2,13 @@ import { debounce } from 'lodash-es';
 import proj4 from 'proj4';
 //https://epsg.io/3857
 //https://epsg.io/3415
-proj4.defs('EPSG:3415', '+proj=lcc +lat_0=0 +lon_0=110 +lat_1=25 +lat_2=47 +ellps=WGS84 +units=m +no_defs +type=crs');
-const xy = proj4('EPSG:3415').forward([116, 39]);
-console.log(xy.map((it) => it / 16000));
-console.log(proj4('EPSG:3415').inverse(xy));
-console.log(proj4('EPSG:3415').forward([110, 25]));
-console.log(proj4('EPSG:3415').forward([70, 25]));
-console.log(proj4('EPSG:3415').forward([140, 25]));
+
+const projection = 'EPSG:3415';
+proj4.defs(
+  projection,
+  '+proj=lcc +lat_0=21 +lon_0=110 +lat_1=38 +lat_2=38.4 +ellps=WGS72 +towgs84=0,0,1.9,0,0,0.814,-0.38 +units=m +no_defs +type=crs'
+);
+
 type LngLatXY = [number, number];
 interface MapOptions {
   container: HTMLElement;
@@ -23,11 +23,13 @@ class ResourceMap {
   resize: Function;
   center: LngLatXY = [116.3912757, 39.906217];
   scale = 2;
+  scaleVal=
   scaleStep = 0.5;
   maxScale = 20;
   minScale = 2;
   imageWidth = 100;
   imageHeight = 100;
+  halfWidth = 50;
   image?: HTMLImageElement;
   move = {
     x: 0,
@@ -84,18 +86,20 @@ class ResourceMap {
       this.drawLayer();
     }
   }
+  lnglat2px(a: [number, number]) {
+    const xy = proj4(projection)
+      .forward(a)
+      .map((t) => t / 8000);
+
+    return [xy[0] + this.halfWidth, this.imageHeight - xy[1]];
+  }
   drawPoint() {
     this.ctx.fillStyle = 'blue';
-    const c = proj4('EPSG:3415')
-      .forward(this.center)
-      .map((a) => a / 16000);
-    const s = this.scale * 0.1;
-    console.log('🚀 ~ index.ts ~ ResourceMap ~ drawPoint ~ c:');
-
-    const xy = [
-      this.move.offsetx + (c[0] + (this.imageWidth - 218 * 2) * 0.5 + 218) * s,
-      this.move.offsety + (240 + (this.imageHeight - 240 * 2) - c[1]) * s
-    ];
+    // const c = proj4('EPSG:3415')
+    //   .forward(this.center)
+    //   .map((a) => a / 16000);
+    // const s = this.scale * 0.1;
+    const xy = this.lnglat2px(this.center);
     this.ctx.fillRect(xy[0], xy[1], 10, 10);
   }
   checkMove() {
@@ -180,6 +184,7 @@ class ResourceMap {
   onResize() {
     this.canvas.width = this.container.offsetWidth;
     this.canvas.height = this.container.offsetHeight;
+
     this.checkMove();
     this.drawLayer();
   }
@@ -190,6 +195,7 @@ class ResourceMap {
       image.onload = () => {
         this.imageWidth = image.naturalWidth;
         this.imageHeight = image.naturalHeight;
+        this.halfWidth = this.imageWidth * 0.5;
         resolve(image);
       };
     });

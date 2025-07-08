@@ -1,4 +1,4 @@
-import { type CanvasDrawType, CanvasRender } from './CanvasRender';
+import { type CanvasDrawType, CanvasRender } from '../utils/CanvasRender';
 import { nextTick } from './util';
 import { debounce } from 'lodash-es';
 import { SphericalMercator, type LngLatXY } from './SphericalMercator';
