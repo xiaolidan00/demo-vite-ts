@@ -1,23 +1,9 @@
 import proj4 from 'proj4';
 const projection = 'EPSG:3415';
-import dat from 'dat.gui';
+
 import { createGui } from '../utils/tool';
 
-function travelGeo(geojson: any, cb: Function) {
-  geojson.features.forEach((a: any) => {
-    if (a.geometry.type === 'MultiPolygon') {
-      a.geometry.coordinates.forEach((b: any) => {
-        b.forEach((c: any) => {
-          cb(c);
-        });
-      });
-    } else {
-      a.geometry.coordinates.forEach((c: any) => {
-        cb(c);
-      });
-    }
-  });
-}
+import { travelGeo } from '../utils/utils';
 //https://epsg.io/3415
 
 const lnglat2px = (a: [number, number]) => {

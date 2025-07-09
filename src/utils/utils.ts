@@ -14,3 +14,19 @@ export function getBlob(url: string) {
       });
   });
 }
+
+export function travelGeo(geojson: any, cb: Function) {
+  geojson.features.forEach((a: any) => {
+    if (a.geometry.type === 'MultiPolygon') {
+      a.geometry.coordinates.forEach((b: any) => {
+        b.forEach((c: any) => {
+          cb(c, a);
+        });
+      });
+    } else {
+      a.geometry.coordinates.forEach((c: any) => {
+        cb(c, a);
+      });
+    }
+  });
+}

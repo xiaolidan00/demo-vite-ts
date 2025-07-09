@@ -1,5 +1,8 @@
 import { debounce } from 'lodash-es';
 import proj4 from 'proj4';
+import chinajson from './100000.json';
+import { travelGeo } from '../utils/utils';
+import { createGui } from '../utils/tool';
 //https://epsg.io/3857
 //https://epsg.io/3415
 
@@ -23,12 +26,13 @@ class ResourceMap {
   resize: Function;
   center: LngLatXY = [116.3912757, 39.906217];
   scale = 2;
-  scaleVal=
+  scaleVal = 0.2;
   scaleStep = 0.5;
   maxScale = 20;
   minScale = 2;
   imageWidth = 100;
   imageHeight = 100;
+  halfHeight = 50;
   halfWidth = 50;
   image?: HTMLImageElement;
   move = {
@@ -39,12 +43,17 @@ class ResourceMap {
     enable: false
   };
   onWheel: Function;
+  data = { zoom: 1340, left: 263, top: 1336, lat0: 0, lat1: 23, lat2: 47, lng0: 110 };
+  // data = { zoom: 1340, lat0: 21, lat1: 38, lat2: 38.4, lng0: 110, left: 0, top: -750 };
   constructor(options: MapOptions) {
     const canvas = document.createElement('canvas');
     this.canvas = canvas;
     this.container = options.container;
     if (options.center) this.center = options.center;
-    if (options.scale) this.scale = options.scale;
+    if (options.scale) {
+      this.scale = options.scale;
+      this.scaleVal = options.scale * 0.1;
+    }
 
     this.container.style.display = 'flex';
     this.container.style.flexDirection = 'column';
@@ -60,6 +69,129 @@ class ResourceMap {
     this.container.addEventListener('wheel', this.onWheel.bind(this));
     this.resize = debounce(this.onResize.bind(this), 100);
     window.addEventListener('resize', this.resize.bind(this));
+    // createGui(
+    //   [
+    //     {
+    //       name: 'zoom',
+    //       type: 'number',
+    //       min: 1200,
+    //       max: 1350,
+    //       step: 0.1,
+    //       onChange: this.drawLayer.bind(this)
+    //     },
+    //     {
+    //       name: 'left',
+    //       type: 'number',
+    //       min: 250,
+    //       max: 300,
+    //       step: 0.1,
+    //       onChange: this.drawLayer.bind(this)
+    //     },
+    //     {
+    //       name: 'top',
+    //       type: 'number',
+    //       min: 1320,
+    //       max: 1380,
+    //       step: 0.1,
+    //       onChange: this.drawLayer.bind(this)
+    //     },
+    //     {
+    //       name: 'lat0',
+    //       type: 'number',
+    //       min: 0,
+    //       max: 30,
+    //       step: 0.1,
+    //       onChange: this.drawLayer.bind(this)
+    //     },
+    //     {
+    //       name: 'lng0',
+    //       type: 'number',
+    //       min: 40,
+    //       max: 120,
+    //       step: 0.1,
+    //       onChange: this.drawLayer.bind(this)
+    //     },
+    //     {
+    //       name: 'lat1',
+    //       type: 'number',
+    //       min: 0,
+    //       max: 90,
+    //       step: 0.1,
+    //       onChange: this.drawLayer.bind(this)
+    //     },
+    //     {
+    //       name: 'lat2',
+    //       type: 'number',
+    //       min: 0,
+    //       max: 90,
+    //       step: 0.1,
+    //       onChange: this.drawLayer.bind(this)
+    //     }
+    //   ],
+    //   this.data
+    // );
+
+    createGui(
+      [
+        {
+          name: 'zoom',
+          type: 'number',
+          min: -2000,
+          max: 2000,
+          step: 1,
+          onChange: this.drawLayer.bind(this)
+        },
+        {
+          name: 'left',
+          type: 'number',
+          min: -2000,
+          max: 2000,
+          step: 1,
+          onChange: this.drawLayer.bind(this)
+        },
+        {
+          name: 'top',
+          type: 'number',
+          min: -2000,
+          max: 2000,
+          step: 1,
+          onChange: this.drawLayer.bind(this)
+        },
+        {
+          name: 'lat0',
+          type: 'number',
+          min: 0,
+          max: 30,
+          step: 0.1,
+          onChange: this.drawLayer.bind(this)
+        },
+        {
+          name: 'lng0',
+          type: 'number',
+          min: 40,
+          max: 120,
+          step: 0.1,
+          onChange: this.drawLayer.bind(this)
+        },
+        {
+          name: 'lat1',
+          type: 'number',
+          min: 0,
+          max: 90,
+          step: 0.1,
+          onChange: this.drawLayer.bind(this)
+        },
+        {
+          name: 'lat2',
+          type: 'number',
+          min: 0,
+          max: 90,
+          step: 0.1,
+          onChange: this.drawLayer.bind(this)
+        }
+      ],
+      this.data
+    );
   }
   doWheel(ev: WheelEvent) {
     let s = this.scale;
@@ -82,6 +214,7 @@ class ResourceMap {
       this.move.offsetx = this.move.offsetx * ss;
       this.move.offsety = this.move.offsety * ss;
       this.scale = s;
+      this.scaleVal = s * 0.1;
       this.checkMove();
       this.drawLayer();
     }
@@ -89,17 +222,40 @@ class ResourceMap {
   lnglat2px(a: [number, number]) {
     const xy = proj4(projection)
       .forward(a)
-      .map((t) => t / 8000);
+      .map((t) => t / this.data.zoom);
 
-    return [xy[0] + this.halfWidth, this.imageHeight - xy[1]];
+    return [
+      this.move.offsetx + this.scaleVal * (xy[0] + this.halfWidth + this.data.left),
+      this.move.offsety + this.scaleVal * (this.imageHeight - xy[1] + this.data.top)
+    ];
+  }
+  drawGeo() {
+    const data = this.data;
+    proj4.defs(
+      projection,
+      `+proj=lcc +lat_0=${data.lat0} +lon_0=${data.lng0} +lat_1=${data.lat1} +lat_2=${data.lat2} +ellps=WGS72 +towgs84=0,0,1.9,0,0,0.814,-0.38 +units=m +no_defs +type=crs`
+    );
+
+    const ctx = this.ctx;
+    ctx.strokeStyle = 'red';
+    ctx.lineWidth = 2;
+    travelGeo(chinajson, (path: Array<[number, number]>) => {
+      ctx.beginPath();
+      const p0 = this.lnglat2px(path[0]);
+      ctx.moveTo(p0[0], p0[1]);
+      for (let i = 1; i < path.length; i++) {
+        const p = this.lnglat2px(path[i]);
+        ctx.lineTo(p[0], p[1]);
+      }
+      ctx.closePath();
+      ctx.stroke();
+    });
   }
   drawPoint() {
     this.ctx.fillStyle = 'blue';
-    // const c = proj4('EPSG:3415')
-    //   .forward(this.center)
-    //   .map((a) => a / 16000);
-    // const s = this.scale * 0.1;
+
     const xy = this.lnglat2px(this.center);
+    console.log('🚀 ~ ResourceMap ~ drawPoint ~ xy:', xy);
     this.ctx.fillRect(xy[0], xy[1], 10, 10);
   }
   checkMove() {
@@ -174,11 +330,12 @@ class ResourceMap {
         // this.canvas.height,
         this.move.offsetx,
         this.move.offsety,
-        this.imageWidth * this.scale * 0.1,
-        this.imageHeight * this.scale * 0.1
+        this.imageWidth * this.scaleVal,
+        this.imageHeight * this.scaleVal
       );
     }
-    this.drawPoint();
+    // this.drawPoint();
+    this.drawGeo();
   }
 
   onResize() {
@@ -196,6 +353,7 @@ class ResourceMap {
         this.imageWidth = image.naturalWidth;
         this.imageHeight = image.naturalHeight;
         this.halfWidth = this.imageWidth * 0.5;
+        this.halfHeight = this.imageHeight * 0.5;
         resolve(image);
       };
     });
