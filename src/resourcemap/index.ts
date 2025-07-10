@@ -42,7 +42,7 @@ class ResourceMap {
   onWheel: Function;
   renderer: CanvasRender;
   idMap: { [n: string]: boolean } = {};
-  data = { zoom: 1340, left: 263, top: 1336, lat0: 0, lat1: 23, lat2: 47, lng0: 110 };
+  data = { zoom: 1340, left: 263, top: 1336, lat0: 0, lat1: 21, lat2: 48, lng0: 110 };
   shapeConfig: CanvasDrawType[] = [];
 
   constructor(options: MapOptions) {
@@ -74,6 +74,7 @@ class ResourceMap {
       this.projection,
       `+proj=lcc +lat_0=${data.lat0} +lon_0=${data.lng0} +lat_1=${data.lat1} +lat_2=${data.lat2} +ellps=WGS72 +towgs84=0,0,1.9,0,0,0.814,-0.38 +units=m +no_defs +type=crs`
     );
+
     window.addEventListener('unload', this.destroy.bind(this));
   }
 
