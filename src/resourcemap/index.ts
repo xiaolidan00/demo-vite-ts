@@ -1,16 +1,11 @@
-import { debounce } from 'lodash-es';
+import { cloneDeep, debounce } from 'lodash-es';
+import { getGadientArray } from 'xcolor-helper';
 import proj4 from 'proj4';
-import chinajson from './100000.json';
+import { CanvasDrawType, CanvasRender } from '../utils/CanvasRender';
 import { travelGeo } from '../utils/utils';
-import { createGui } from '../utils/tool';
+import { EventEmitter } from '../utils/EventEmitter';
 //https://epsg.io/3857
 //https://epsg.io/3415
-
-const projection = 'EPSG:3415';
-proj4.defs(
-  projection,
-  '+proj=lcc +lat_0=21 +lon_0=110 +lat_1=38 +lat_2=38.4 +ellps=WGS72 +towgs84=0,0,1.9,0,0,0.814,-0.38 +units=m +no_defs +type=crs'
-);
 
 type LngLatXY = [number, number];
 interface MapOptions {
@@ -20,6 +15,7 @@ interface MapOptions {
 }
 
 class ResourceMap {
+  projection = 'EPSG:3415';
   container: HTMLElement;
   canvas: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
@@ -42,9 +38,13 @@ class ResourceMap {
     offsety: 0,
     enable: false
   };
+  events: EventEmitter = new EventEmitter();
   onWheel: Function;
+  renderer: CanvasRender;
+  idMap: { [n: string]: boolean } = {};
   data = { zoom: 1340, left: 263, top: 1336, lat0: 0, lat1: 23, lat2: 47, lng0: 110 };
-  // data = { zoom: 1340, lat0: 21, lat1: 38, lat2: 38.4, lng0: 110, left: 0, top: -750 };
+  shapeConfig: CanvasDrawType[] = [];
+
   constructor(options: MapOptions) {
     const canvas = document.createElement('canvas');
     this.canvas = canvas;
@@ -58,7 +58,7 @@ class ResourceMap {
     this.container.style.display = 'flex';
     this.container.style.flexDirection = 'column';
     this.container.appendChild(canvas);
-
+    this.renderer = new CanvasRender(canvas);
     this.ctx = canvas.getContext('2d')!;
     this.container.addEventListener('pointerdown', this.onMoveStart.bind(this));
     this.container.addEventListener('pointerup', this.onMoveEnd.bind(this));
@@ -69,129 +69,31 @@ class ResourceMap {
     this.container.addEventListener('wheel', this.onWheel.bind(this));
     this.resize = debounce(this.onResize.bind(this), 100);
     window.addEventListener('resize', this.resize.bind(this));
-    // createGui(
-    //   [
-    //     {
-    //       name: 'zoom',
-    //       type: 'number',
-    //       min: 1200,
-    //       max: 1350,
-    //       step: 0.1,
-    //       onChange: this.drawLayer.bind(this)
-    //     },
-    //     {
-    //       name: 'left',
-    //       type: 'number',
-    //       min: 250,
-    //       max: 300,
-    //       step: 0.1,
-    //       onChange: this.drawLayer.bind(this)
-    //     },
-    //     {
-    //       name: 'top',
-    //       type: 'number',
-    //       min: 1320,
-    //       max: 1380,
-    //       step: 0.1,
-    //       onChange: this.drawLayer.bind(this)
-    //     },
-    //     {
-    //       name: 'lat0',
-    //       type: 'number',
-    //       min: 0,
-    //       max: 30,
-    //       step: 0.1,
-    //       onChange: this.drawLayer.bind(this)
-    //     },
-    //     {
-    //       name: 'lng0',
-    //       type: 'number',
-    //       min: 40,
-    //       max: 120,
-    //       step: 0.1,
-    //       onChange: this.drawLayer.bind(this)
-    //     },
-    //     {
-    //       name: 'lat1',
-    //       type: 'number',
-    //       min: 0,
-    //       max: 90,
-    //       step: 0.1,
-    //       onChange: this.drawLayer.bind(this)
-    //     },
-    //     {
-    //       name: 'lat2',
-    //       type: 'number',
-    //       min: 0,
-    //       max: 90,
-    //       step: 0.1,
-    //       onChange: this.drawLayer.bind(this)
-    //     }
-    //   ],
-    //   this.data
-    // );
-
-    createGui(
-      [
-        {
-          name: 'zoom',
-          type: 'number',
-          min: -2000,
-          max: 2000,
-          step: 1,
-          onChange: this.drawLayer.bind(this)
-        },
-        {
-          name: 'left',
-          type: 'number',
-          min: -2000,
-          max: 2000,
-          step: 1,
-          onChange: this.drawLayer.bind(this)
-        },
-        {
-          name: 'top',
-          type: 'number',
-          min: -2000,
-          max: 2000,
-          step: 1,
-          onChange: this.drawLayer.bind(this)
-        },
-        {
-          name: 'lat0',
-          type: 'number',
-          min: 0,
-          max: 30,
-          step: 0.1,
-          onChange: this.drawLayer.bind(this)
-        },
-        {
-          name: 'lng0',
-          type: 'number',
-          min: 40,
-          max: 120,
-          step: 0.1,
-          onChange: this.drawLayer.bind(this)
-        },
-        {
-          name: 'lat1',
-          type: 'number',
-          min: 0,
-          max: 90,
-          step: 0.1,
-          onChange: this.drawLayer.bind(this)
-        },
-        {
-          name: 'lat2',
-          type: 'number',
-          min: 0,
-          max: 90,
-          step: 0.1,
-          onChange: this.drawLayer.bind(this)
-        }
-      ],
-      this.data
+    const data = this.data;
+    proj4.defs(
+      this.projection,
+      `+proj=lcc +lat_0=${data.lat0} +lon_0=${data.lng0} +lat_1=${data.lat1} +lat_2=${data.lat2} +ellps=WGS72 +towgs84=0,0,1.9,0,0,0.814,-0.38 +units=m +no_defs +type=crs`
     );
+    window.addEventListener('unload', this.destroy.bind(this));
+  }
+
+  async drawShape() {
+    this.shapeConfig.sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
+    for (let i = 0; i < this.shapeConfig.length; i++) {
+      const op: CanvasDrawType = cloneDeep(this.shapeConfig[i]);
+      if (op.type === 'Circle') {
+        op.center = this.lnglat2px(op.center);
+      } else if (op.type === 'Image' || op.type === 'Text') {
+        op.pos = this.lnglat2px(op.pos);
+      } else if (op.type === 'Rect') {
+        op.start = this.lnglat2px(op.start);
+        op.end = this.lnglat2px(op.end);
+      } else if (op.type === 'Line' || op.type === 'Polygon') {
+        op.path = op.path.map((p: LngLatXY) => this.lnglat2px(p));
+      }
+
+      await this.renderer.draw(op);
+    }
   }
   doWheel(ev: WheelEvent) {
     let s = this.scale;
@@ -219,8 +121,8 @@ class ResourceMap {
       this.drawLayer();
     }
   }
-  lnglat2px(a: [number, number]) {
-    const xy = proj4(projection)
+  lnglat2px(a: LngLatXY): LngLatXY {
+    const xy = proj4(this.projection)
       .forward(a)
       .map((t) => t / this.data.zoom);
 
@@ -229,37 +131,14 @@ class ResourceMap {
       this.move.offsety + this.scaleVal * (this.imageHeight - xy[1] + this.data.top)
     ];
   }
-  drawGeo() {
-    const data = this.data;
-    proj4.defs(
-      projection,
-      `+proj=lcc +lat_0=${data.lat0} +lon_0=${data.lng0} +lat_1=${data.lat1} +lat_2=${data.lat2} +ellps=WGS72 +towgs84=0,0,1.9,0,0,0.814,-0.38 +units=m +no_defs +type=crs`
-    );
-
-    const ctx = this.ctx;
-    ctx.strokeStyle = 'red';
-    ctx.lineWidth = 2;
-    travelGeo(chinajson, (path: Array<[number, number]>) => {
-      ctx.beginPath();
-      const p0 = this.lnglat2px(path[0]);
-      ctx.moveTo(p0[0], p0[1]);
-      for (let i = 1; i < path.length; i++) {
-        const p = this.lnglat2px(path[i]);
-        ctx.lineTo(p[0], p[1]);
-      }
-      ctx.closePath();
-      ctx.stroke();
-    });
+  add(op: CanvasDrawType) {
+    if (!this.idMap[op.id]) {
+      this.idMap[op.id] = true;
+      this.shapeConfig.push(op);
+    }
   }
-  drawPoint() {
-    this.ctx.fillStyle = 'blue';
 
-    const xy = this.lnglat2px(this.center);
-    console.log('🚀 ~ ResourceMap ~ drawPoint ~ xy:', xy);
-    this.ctx.fillRect(xy[0], xy[1], 10, 10);
-  }
   checkMove() {
-    // console.log('🚀 ~ ResourceMap ~ checkMove ~ this.move.offsetx:', this.move.offsetx, this.move.offsety);
     const s = this.scale * 0.1;
 
     const w = this.imageWidth * s;
@@ -310,6 +189,11 @@ class ResourceMap {
       this.move.enable = false;
       this.checkMove();
       this.drawLayer();
+    } else {
+      const x = ev.offsetX;
+      const y = ev.offsetY;
+      const objs = this.renderer.checkShapes(x, y);
+      this.events.emit('click', { objs, x, y, ev });
     }
   }
   async init() {
@@ -334,8 +218,7 @@ class ResourceMap {
         this.imageHeight * this.scaleVal
       );
     }
-    // this.drawPoint();
-    this.drawGeo();
+    this.drawShape();
   }
 
   onResize() {
@@ -358,9 +241,94 @@ class ResourceMap {
       };
     });
   }
+  destroy() {
+    this.shapeConfig = [];
+    this.container.removeEventListener('pointerdown', this.onMoveStart.bind(this));
+    this.container.removeEventListener('pointerup', this.onMoveEnd.bind(this));
+    this.container.removeEventListener('pointermove', this.onMove.bind(this));
+
+    this.container.removeEventListener('wheel', this.onWheel.bind(this));
+
+    window.removeEventListener('resize', this.resize.bind(this));
+  }
 }
 
 const map = new ResourceMap({
   container: document.getElementById('container')!
 });
 map.init();
+
+console.log('🚀 ~ index.ts ~ map.events.on ~ map:', map);
+map.events.on('click', ({ objs }: { objs: CanvasDrawType[] }) => {
+  console.log('🚀 ~ index.ts ~ map.events.on ~ objs:', objs);
+});
+
+fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json')
+  .then((res) => res.json())
+  .then((res) => {
+    const labelMap: { [n: string]: boolean } = {};
+
+    const colors = getGadientArray('#00BFFF', '#0000CD', 10);
+    let index = 0;
+    const textStyle = {
+      fontSize: 14,
+      fillColor: 'white',
+      fillShadowBlurStyle: {
+        shadowColor: '#4169E1',
+        shadowBlur: 10
+      }
+    };
+    const shapeStyle = {
+      fillShadowBlurStyle: {
+        shadowColor: '#4169E1',
+        shadowBlur: 10
+      }
+    };
+    const textList: CanvasDrawType[] = [];
+    travelGeo(res, (path: LngLatXY[], a: any) => {
+      const n = a.properties.name as string;
+      map.add({
+        id: index,
+
+        name: n,
+        isAction: true,
+        type: 'Polygon',
+        path,
+        style: {
+          fillColor: colors[index % colors.length],
+
+          ...shapeStyle
+        }
+      });
+      index++;
+
+      if (!labelMap[n] && n && a.properties.center) {
+        labelMap[n] = true;
+        textList.push({
+          id: 'text' + index,
+          name: n,
+          text: n,
+          style: textStyle,
+          type: 'Text',
+          pos: a.properties.center,
+          zIndex: index
+        });
+        textList.push({
+          id: 'texta' + index,
+          name: n,
+          text: index + '',
+          style: textStyle,
+          type: 'Text',
+          pos: a.properties.center,
+          zIndex: index,
+          offsetY: 16
+        });
+      }
+    });
+    textList.forEach((item) => {
+      map.add(item);
+    });
+
+    map.drawLayer();
+    console.log('🚀 ~ index.ts ~ travelGeo ~ index:', index);
+  });

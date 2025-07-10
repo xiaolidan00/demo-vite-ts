@@ -2,7 +2,7 @@ import { type CanvasDrawType, CanvasRender } from '../utils/CanvasRender';
 import { nextTick } from './util';
 import { debounce } from 'lodash-es';
 import { SphericalMercator, type LngLatXY } from './SphericalMercator';
-import { EventEmitter } from './EventEmitter';
+import { EventEmitter } from '../utils/EventEmitter';
 
 type MapOptions = {
   center: LngLatXY;

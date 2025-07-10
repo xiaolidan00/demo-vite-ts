@@ -43,6 +43,7 @@ export type CommonCanvasType = {
   isAction?: boolean;
   zIndex?: number;
   hidden?: boolean;
+  data?: any;
 };
 export type CanvasPolygon = CommonCanvasType & {
   type: 'Polygon';
@@ -247,13 +248,13 @@ export class CanvasRender {
     //像素小于1不绘制
     if (end[0] - start[0] < 1 || end[1] - start[1] < 1) return false;
     //收集在可视范围内的形状元素，用于后续事件监听
-    if (
-      data.isAction &&
-      ((end[0] >= 0 && end[1] >= 0) || (start[0] <= this.canvas.width && start[1] <= this.canvas.height))
-    ) {
-      const item = { start, end, data, id: data.id };
+    if ((end[0] >= 0 && end[1] >= 0) || (start[0] <= this.canvas.width && start[1] <= this.canvas.height)) {
+      if (data.isAction) {
+        const item = { start, end, data, id: data.id };
 
-      this.boxMap.push(item);
+        this.boxMap.push(item);
+      }
+
       return true;
     }
     return false;
@@ -395,11 +396,13 @@ export class CanvasRender {
     const lineWidth = style.lineWidth || 0;
     const w = Math.ceil(width * 0.5);
     const h = Math.ceil(fontSize * 0.5);
+
     if (this.setBoxMap([x - w - lineWidth, y - h - lineWidth], [x + w + lineWidth, y + h + lineWidth], op)) {
       if (style.fillColor) {
         this.setShapeStyle(style);
         this.ctx.fillText(op.text, x, y);
       }
+
       if (style.lineColor && style.lineWidth) {
         this.setLineStyle(style);
         this.ctx.strokeText(op.text, x, y);
