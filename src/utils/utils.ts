@@ -30,3 +30,6 @@ export function travelGeo(geojson: any, cb: Function) {
     }
   });
 }
+export function nextTick() {
+  return Promise.resolve();
+}

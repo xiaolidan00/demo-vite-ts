@@ -19,25 +19,26 @@ class LambertProj {
   //   lng0: 105,
   //   lat1: 25,
   //   lat2: 47,
-  //   left: -1,
-  //   top: 43,
-  //   zoom: 6706
+  //   x0: -65,
+  //   y0: -1835,
+  //   zoom: 1324
   // };
   data = {
     lat0: 0,
     lng0: 110,
     lat1: 21,
     lat2: 56.8,
-    left: 53,
-    top: 68,
-    zoom: 6451
+    x0: 350,
+    y0: -1835,
+    zoom: 1300
   };
   canvas: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
   image?: HTMLImageElement;
   imageWidth = 100;
   imageHeight = 100;
-  half = 100;
+  scaleVal = 0.2;
+
   constructor() {
     const canvas = document.createElement('canvas');
     document.body.appendChild(canvas);
@@ -50,38 +51,44 @@ class LambertProj {
   async init() {
     const image = await this.loadImage();
     this.image = image;
-    this.imageWidth = image.naturalWidth * 0.2;
-    this.imageHeight = image.naturalHeight * 0.2;
 
-    const half = this.imageWidth * 0.5;
-    this.half = half;
     this.gui();
     this.drawGeo();
   }
+  lnglat2px(a: [number, number]) {
+    const xy = proj4(this.projection)
+      .forward(a)
+      .map((t) => t / this.data.zoom);
+
+    return [this.scaleVal * (xy[0] + this.imageWidth * 0.5), this.scaleVal * (this.imageHeight - xy[1])];
+  }
+
   drawGeo() {
     const image = this.image!;
     const data = this.data;
     const canvas = this.canvas;
     const ctx = this.ctx;
-    const half = this.half;
+
     proj4.defs(
       this.projection,
-      `+proj=lcc +lat_0=${data.lat0} +lon_0=${data.lng0} +lat_1=${data.lat1} +lat_2=${data.lat2} +ellps=WGS72 +towgs84=0,0,1.9,0,0,0.814,-0.38 +units=m +no_defs +type=crs`
+      `+proj=lcc +lat_0=${data.lat0} +lon_0=${data.lng0} +lat_1=${data.lat1} +lat_2=${data.lat2} +x_0=${
+        data.x0 * 1000
+      } +y_0=${data.y0 * 1000} +ellps=WGS72 +towgs84=0,0,1.9,0,0,0.814,-0.38 +units=m +no_defs +type=crs`
     );
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     //绘制底图
-    ctx.drawImage(image, 0, 0, this.imageWidth, this.imageHeight);
+    ctx.drawImage(image, 0, 0, this.imageWidth * this.scaleVal, this.imageHeight * this.scaleVal);
     ctx.strokeStyle = 'red';
     ctx.lineWidth = 2;
     //中国边界
     travelGeo(ChinaJson, (path: Array<[number, number]>) => {
       ctx.beginPath();
       const p0 = this.lnglat2px(path[0]);
-      ctx.moveTo(data.left + p0[0] + half, data.top + canvas.height - p0[1]);
+      ctx.moveTo(p0[0], p0[1]);
       for (let i = 1; i < path.length; i++) {
         const p = this.lnglat2px(path[i]);
-        ctx.lineTo(data.left + p[0] + half, data.top + canvas.height - p[1]);
+        ctx.lineTo(p[0], p[1]);
       }
       ctx.closePath();
       ctx.stroke();
@@ -128,19 +135,19 @@ class LambertProj {
         },
         {
           //左偏移量
-          name: 'left',
+          name: 'x0',
           type: 'number',
-          min: -100,
-          max: 100,
+          min: -2000,
+          max: 2000,
           step: 1,
           onChange: this.drawGeo.bind(this)
         },
         {
           //上偏移量
-          name: 'top',
+          name: 'y0',
           type: 'number',
-          min: -100,
-          max: 100,
+          min: -2000,
+          max: 2000,
           step: 1,
           onChange: this.drawGeo.bind(this)
         },
@@ -148,8 +155,8 @@ class LambertProj {
           //缩放等级
           name: 'zoom',
           type: 'number',
-          min: 5000,
-          max: 8000,
+          min: 1000,
+          max: 2000,
           step: 1,
           onChange: this.drawGeo.bind(this)
         }
@@ -162,15 +169,11 @@ class LambertProj {
       const image = new Image();
       image.src = '../assets/map.JPG';
       image.onload = () => {
+        this.imageWidth = image.naturalWidth;
+        this.imageHeight = image.naturalHeight;
         resolve(image);
       };
     });
-  }
-
-  lnglat2px(a: [number, number]) {
-    return proj4(this.projection)
-      .forward(a)
-      .map((t) => t / this.data.zoom);
   }
 }
 
