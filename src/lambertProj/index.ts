@@ -1,61 +1,82 @@
 import proj4 from 'proj4';
-const projection = 'EPSG:3415';
-
+import ChinaJson from '../data/100000.json';
 import { createGui } from '../utils/tool';
 
 import { travelGeo } from '../utils/utils';
-//https://epsg.io/3415
+//https://epsg.io/3857
+// proj4.defs(
+//   'EPSG:3857',
+//   '+proj=merc +a=6378137 +b=6378137 +lat_ts=0 +lon_0=0 +x_0=0 +y_0=0 +k=1 +units=m +nadgrids=@null +wktext +no_defs +type=crs'
+// );
+// const p = proj4('EPSG:3857').forward([116, 39]);
+// console.log(p);
+// console.log(proj4('EPSG:3857').inverse(p));
 
-const lnglat2px = (a: [number, number]) => {
-  return proj4(projection)
-    .forward(a)
-    .map((t) => t / 8000);
-};
-fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000.json')
-  .then((res) => res.json())
-  .then((res) => {
+class LambertProj {
+  projection = 'China Lambert';
+  data = {
+    lat0: 0,
+    lng0: 105,
+    lat1: 25,
+    lat2: 47,
+    left: -3,
+    top: 46,
+    zoom: 6746
+  };
+  canvas: HTMLCanvasElement;
+  ctx: CanvasRenderingContext2D;
+  image?: HTMLImageElement;
+  imageWidth = 100;
+  imageHeight = 100;
+  half = 100;
+  constructor() {
     const canvas = document.createElement('canvas');
-    canvas.width = 850;
-    canvas.height = 1000;
-
     document.body.appendChild(canvas);
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    this.canvas = canvas;
     const ctx = canvas.getContext('2d')!;
-    const half = canvas.width * 0.5;
-    const data = {
-      lat0: 21,
-      lat1: 38,
-      lat2: 38.4,
-      lng0: 110,
-      left: 28.7,
-      top: 490.1
-    };
+    this.ctx = ctx;
+  }
+  async init() {
+    const image = await this.loadImage();
+    this.image = image;
+    this.imageWidth = image.naturalWidth * 0.2;
+    this.imageHeight = image.naturalHeight * 0.2;
 
-    const drawGeo = () => {
-      proj4.defs(
-        projection,
-        `+proj=lcc +lat_0=${data.lat0} +lon_0=${data.lng0} +lat_1=${data.lat1} +lat_2=${data.lat2} +ellps=WGS72 +towgs84=0,0,1.9,0,0,0.814,-0.38 +units=m +no_defs +type=crs`
-      );
+    const half = this.imageWidth * 0.5;
+    this.half = half;
+    this.gui();
+    this.drawGeo();
+  }
+  drawGeo() {
+    const image = this.image!;
+    const data = this.data;
+    const canvas = this.canvas;
+    const ctx = this.ctx;
+    const half = this.half;
+    proj4.defs(
+      this.projection,
+      `+proj=lcc +lat_0=${data.lat0} +lon_0=${data.lng0} +lat_1=${data.lat1} +lat_2=${data.lat2} +ellps=WGS72 +towgs84=0,0,1.9,0,0,0.814,-0.38 +units=m +no_defs +type=crs`
+    );
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.strokeStyle = 'red';
-      ctx.lineWidth = 2;
-      travelGeo(res, (path: Array<[number, number]>) => {
-        ctx.beginPath();
-        const p0 = lnglat2px(path[0]);
-        ctx.moveTo(p0[0] + half, canvas.height - p0[1]);
-        for (let i = 1; i < path.length; i++) {
-          const p = lnglat2px(path[i]);
-          ctx.lineTo(p[0] + half, canvas.height - p[1]);
-        }
-        ctx.closePath();
-        ctx.stroke();
-      });
-    };
-
-    const moveCanvas = () => {
-      canvas.style.left = data.left + 'px';
-      canvas.style.top = -data.top + 'px';
-    };
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(image, 0, 0, this.imageWidth, this.imageHeight);
+    ctx.strokeStyle = 'red';
+    ctx.lineWidth = 2;
+    travelGeo(ChinaJson, (path: Array<[number, number]>) => {
+      ctx.beginPath();
+      const p0 = this.lnglat2px(path[0]);
+      ctx.moveTo(data.left + p0[0] + half, data.top + canvas.height - p0[1]);
+      for (let i = 1; i < path.length; i++) {
+        const p = this.lnglat2px(path[i]);
+        ctx.lineTo(data.left + p[0] + half, data.top + canvas.height - p[1]);
+      }
+      ctx.closePath();
+      ctx.stroke();
+    });
+  }
+  gui() {
     createGui(
       [
         {
@@ -64,7 +85,7 @@ fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000.json')
           min: 0,
           max: 30,
           step: 0.1,
-          onChange: drawGeo
+          onChange: this.drawGeo.bind(this)
         },
         {
           name: 'lng0',
@@ -72,7 +93,7 @@ fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000.json')
           min: 40,
           max: 120,
           step: 0.1,
-          onChange: drawGeo
+          onChange: this.drawGeo.bind(this)
         },
         {
           name: 'lat1',
@@ -80,7 +101,7 @@ fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000.json')
           min: 0,
           max: 90,
           step: 0.1,
-          onChange: drawGeo
+          onChange: this.drawGeo.bind(this)
         },
         {
           name: 'lat2',
@@ -88,27 +109,52 @@ fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000.json')
           min: 0,
           max: 90,
           step: 0.1,
-          onChange: drawGeo
+          onChange: this.drawGeo.bind(this)
         },
         {
           name: 'left',
           type: 'number',
           min: -100,
           max: 100,
-          step: 0.1,
-          onChange: moveCanvas
+          step: 1,
+          onChange: this.drawGeo.bind(this)
         },
         {
           name: 'top',
           type: 'number',
-          min: 90,
-          max: 700,
-          step: 0.1,
-          onChange: moveCanvas
+          min: -100,
+          max: 100,
+          step: 1,
+          onChange: this.drawGeo.bind(this)
+        },
+        {
+          name: 'zoom',
+          type: 'number',
+          min: 5000,
+          max: 8000,
+          step: 1,
+          onChange: this.drawGeo.bind(this)
         }
       ],
-      data
+      this.data
     );
-    moveCanvas();
-    drawGeo();
-  });
+  }
+  loadImage() {
+    return new Promise<HTMLImageElement>((resolve) => {
+      const image = new Image();
+      image.src = '../assets/map.JPG';
+      image.onload = () => {
+        resolve(image);
+      };
+    });
+  }
+
+  lnglat2px(a: [number, number]) {
+    return proj4(this.projection)
+      .forward(a)
+      .map((t) => t / this.data.zoom);
+  }
+}
+
+const lambert = new LambertProj();
+lambert.init();

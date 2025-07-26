@@ -5,7 +5,7 @@ function readSrc(rootPath: string) {
   const inputMap: { [n: string]: string } = {};
   const files = fs.readdirSync(rootPath);
   files.forEach((item) => {
-    if (!['utils'].includes(item)) inputMap[item] = `${rootPath}/${item}/index.ts`;
+    if (!['utils', 'assets', '@types', 'data'].includes(item)) inputMap[item] = `${rootPath}/${item}/index.ts`;
   });
   return inputMap;
 }

@@ -27,6 +27,7 @@
     "normalize.css": "^8.0.1",
     "pdfjs-dist": "^5.3.31",
     "proj4": "^2.19.5",
+    "sass": "^1.89.2",
     "xcolor-helper": "^1.0.3"
   }
 }
