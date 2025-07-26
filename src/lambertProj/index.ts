@@ -14,14 +14,23 @@ import { travelGeo } from '../utils/utils';
 
 class LambertProj {
   projection = 'China Lambert';
+  // data = {
+  //   lat0: 0,
+  //   lng0: 105,
+  //   lat1: 25,
+  //   lat2: 47,
+  //   left: -1,
+  //   top: 43,
+  //   zoom: 6706
+  // };
   data = {
     lat0: 0,
-    lng0: 105,
-    lat1: 25,
-    lat2: 47,
-    left: -16,
-    top: 46,
-    zoom: 6746
+    lng0: 110,
+    lat1: 21,
+    lat2: 56.8,
+    left: 53,
+    top: 68,
+    zoom: 6451
   };
   canvas: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
@@ -61,9 +70,11 @@ class LambertProj {
     );
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    //绘制底图
     ctx.drawImage(image, 0, 0, this.imageWidth, this.imageHeight);
     ctx.strokeStyle = 'red';
     ctx.lineWidth = 2;
+    //中国边界
     travelGeo(ChinaJson, (path: Array<[number, number]>) => {
       ctx.beginPath();
       const p0 = this.lnglat2px(path[0]);
@@ -80,6 +91,7 @@ class LambertProj {
     createGui(
       [
         {
+          //原点纬度
           name: 'lat0',
           type: 'number',
           min: 0,
@@ -88,6 +100,7 @@ class LambertProj {
           onChange: this.drawGeo.bind(this)
         },
         {
+          //原点经度
           name: 'lng0',
           type: 'number',
           min: 40,
@@ -96,6 +109,7 @@ class LambertProj {
           onChange: this.drawGeo.bind(this)
         },
         {
+          //第一条纬线纬度
           name: 'lat1',
           type: 'number',
           min: 0,
@@ -104,6 +118,7 @@ class LambertProj {
           onChange: this.drawGeo.bind(this)
         },
         {
+          //第二条纬线纬度
           name: 'lat2',
           type: 'number',
           min: 0,
@@ -112,6 +127,7 @@ class LambertProj {
           onChange: this.drawGeo.bind(this)
         },
         {
+          //左偏移量
           name: 'left',
           type: 'number',
           min: -100,
@@ -120,6 +136,7 @@ class LambertProj {
           onChange: this.drawGeo.bind(this)
         },
         {
+          //上偏移量
           name: 'top',
           type: 'number',
           min: -100,
@@ -128,6 +145,7 @@ class LambertProj {
           onChange: this.drawGeo.bind(this)
         },
         {
+          //缩放等级
           name: 'zoom',
           type: 'number',
           min: 5000,
