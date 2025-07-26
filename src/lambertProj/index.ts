@@ -19,7 +19,7 @@ class LambertProj {
     lng0: 105,
     lat1: 25,
     lat2: 47,
-    left: -3,
+    left: -16,
     top: 46,
     zoom: 6746
   };
