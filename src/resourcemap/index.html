@@ -17,6 +17,32 @@
         overflow: hidden;
         background-color: yellow;
       }
+      .text-box {
+        text-align: center;
+      }
+      .text-box > div {
+        background-color: white;
+        font-size: 30px;
+        font-weight: bold;
+        font-family: Georgia, 'Times New Roman', Times, serif;
+        color: dodgerblue;
+        border-radius: 6px;
+        padding: 8px;
+        position: relative;
+
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+      }
+      .text-box::after {
+        position: relative;
+        z-index: 2;
+        top: -12px;
+        display: inline-block;
+        content: '';
+        height: 15px;
+        width: 15px;
+        background-color: white;
+        transform: rotate(45deg);
+      }
     </style>
   </head>
   <body>

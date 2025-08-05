@@ -1,17 +1,18 @@
 import { type CanvasDrawType, CanvasRender } from '../utils/CanvasRender';
-import { nextTick } from '../utils/utils';
+import { nextTick, travelGeo } from '../utils/utils';
 import { debounce } from 'lodash-es';
 import ChinaJson from '../data/100000.json';
 import proj4 from 'proj4';
 import { EventEmitter } from '../utils/EventEmitter';
 export type LngLatXY = [number, number];
 type MapOptions = {
-  center: LngLatXY;
-  zoom: number;
+  center?: LngLatXY;
+  zoom?: number;
   container: HTMLElement;
 };
 class ChinaLambertProj {
   projection = 'China Lambert';
+  //兰伯特投影参数
   data = {
     lat0: 0,
     lng0: 110,
@@ -21,8 +22,10 @@ class ChinaLambertProj {
     y0: -1835,
     zoom: 1300
   };
+  //中国地势图图片宽高
   imageWidth = 100;
   imageHeight = 100;
+  //缩放比例
   scaleVal = 0.2;
   constructor() {
     const data = this.data;
@@ -33,9 +36,11 @@ class ChinaLambertProj {
       } +y_0=${data.y0 * 1000} +ellps=WGS72 +towgs84=0,0,1.9,0,0,0.814,-0.38 +units=m +no_defs +type=crs`
     );
   }
+  //设置缩放比例
   setScale(v: number) {
     this.scaleVal = v;
   }
+  //经纬度转像素
   lnglat2px(a: LngLatXY) {
     const xy = proj4(this.projection)
       .forward(a)
@@ -43,6 +48,7 @@ class ChinaLambertProj {
 
     return [this.scaleVal * (xy[0] + this.imageWidth * 0.5), this.scaleVal * (this.imageHeight - xy[1])];
   }
+  //像素转经纬度
   px2lnglat(a: LngLatXY) {
     const p = [
       (a[0] / this.scaleVal - this.imageWidth * 0.5) * this.data.zoom,
@@ -50,6 +56,7 @@ class ChinaLambertProj {
     ];
     return proj4(this.projection).inverse(p);
   }
+  //设置图片大小
   setImageSize(w: number, h: number) {
     this.imageWidth = w;
     this.imageHeight = h;
@@ -80,7 +87,7 @@ export type MapHtmlOptions = {
   dom: HTMLDivElement;
 };
 export type HtmlBoxType = { start: LngLatXY; end: LngLatXY } & MapHtmlOptions;
-export class MyMap {
+export class ResourceMap {
   container: HTMLElement;
 
   overlay: HTMLElement;
@@ -89,15 +96,18 @@ export class MyMap {
   projection = new ChinaLambertProj();
   center: LngLatXY = [116.407387, 39.904179];
   zoom = 2;
-  scaleVal = 0.2;
+
   minZoom = 2;
   maxZoom = 20;
   isFirst: boolean = true;
   isLock: boolean = false;
-  wheelCount = 0;
+
+  zoomStep = 0.5;
   move = {
     enable: false,
     isMove: false,
+    originX: 0,
+    originY: 0,
     startX: 0,
     startY: 0,
     offsetX: 0,
@@ -113,23 +123,33 @@ export class MyMap {
   events: EventEmitter = new EventEmitter();
   htmlOverlays: MapHtmlOptions[] = [];
   htmlBox: HtmlBoxType[] = [];
-  image?: HTMLElement;
+  image?: HTMLImageElement;
+  resize: Function;
+  wheel: Function;
+  clickMap: Function;
   constructor(options: MapOptions) {
     this.options = options;
-    this.center = options.center;
-    this.zoom = options.zoom;
+    if (options.center) this.center = options.center;
+    if (options.zoom) {
+      this.zoom = options.zoom;
+      this.projection.setScale(this.zoom * 0.1);
+    }
     this.container = options.container;
+
     this.container.style.display = 'flex';
     this.container.style.flexDirection = 'column';
     this.canvas = document.createElement('canvas');
+    this.canvas.width = this.container.offsetWidth;
+    this.canvas.height = this.container.offsetHeight;
     this.ctx = this.canvas.getContext('2d') as CanvasRenderingContext2D;
     this.renderer = new CanvasRender(this.canvas);
     this.container.appendChild(this.canvas);
     this.canvas.style.flex = 'none';
     this.overlay = this.addDom('map-overlay', 2);
 
-    this.resize();
-
+    this.resize = debounce(this.onResize.bind(this), 100);
+    this.wheel = debounce(this.onWheel.bind(this), 100);
+    this.clickMap = debounce(this.onClickMap.bind(this), 100);
     this.onListener();
   }
   loadImage() {
@@ -146,6 +166,14 @@ export class MyMap {
   async init() {
     const image = await this.loadImage();
     this.image = image;
+
+    this.setCenter(this.center);
+    ////地图居中
+    //  const w = this.projection.imageWidth * this.projection.scaleVal;
+    // const h = this.projection.imageHeight * this.projection.scaleVal;
+    // this.move.offsetX = (this.canvas.width - w) * 0.5;
+    // this.move.offsetY = (this.canvas.height - h) * 0.5;
+    // this.drawLayer();
   }
   private addDom(className: string, zIndex: number) {
     const dom = document.createElement('div');
@@ -155,6 +183,8 @@ export class MyMap {
     dom.style.pointerEvents = 'none';
     dom.style.overflow = 'hidden';
     dom.style.zIndex = String(zIndex);
+    dom.style.width = this.container.offsetWidth + 'px';
+    dom.style.height = this.container.offsetHeight + 'px';
     this.container.appendChild(dom);
     return dom;
   }
@@ -253,137 +283,131 @@ export class MyMap {
     }
   }
   onListener() {
-    window.addEventListener('resize', this.resize);
+    window.addEventListener('resize', this.resize.bind(this));
     if (this.container) {
-      this.container.addEventListener('click', this.onClickMap.bind(this));
       this.container.addEventListener('mousedown', this.onMouseDown.bind(this));
       this.container.addEventListener('mousemove', this.onMouseMove.bind(this));
       this.container.addEventListener('mouseup', this.onMouseUp.bind(this));
       this.container.addEventListener('mouseleave', this.onMouseUp.bind(this));
-      this.container.addEventListener('wheel', this.onWheel);
+      this.container.addEventListener('wheel', this.wheel.bind(this));
       document.addEventListener('mouseup', this.onMouseUp.bind(this));
     }
 
     window.addEventListener('unload', this.offListener.bind(this));
   }
   offListener() {
-    window.removeEventListener('resize', this.resize);
+    window.removeEventListener('resize', this.resize.bind(this));
     if (this.container) {
-      this.container.removeEventListener('click', this.onClickMap.bind(this));
       this.container.removeEventListener('mousedown', this.onMouseDown.bind(this));
       this.container.removeEventListener('mousemove', this.onMouseMove.bind(this));
       this.container.removeEventListener('mouseup', this.onMouseUp.bind(this));
       this.container.removeEventListener('mouseleave', this.onMouseUp.bind(this));
-      this.container.removeEventListener('wheel', this.onWheel);
+      this.container.removeEventListener('wheel', this.wheel.bind(this));
       document.removeEventListener('mouseup', this.onMouseUp.bind(this));
     }
     this.events.clear();
   }
+  //设置地图缩放大小
   setZoom(z: number) {
     if (z >= this.minZoom && z <= this.maxZoom) {
-      this.drawLayer();
+      this.zoom = z;
+
+      this.projection.setScale(z * 0.1);
+      this.setCenter(this.center);
     }
   }
+  //设置地图中心点位置
   setCenter(center: LngLatXY) {
     if (center[0] >= -180 && center[0] <= 180 && center && center[1] >= -90 && center[1] <= 90) {
       this.center = center;
+      const pos = this.projection.lnglat2px(center);
+      this.move.offsetX = -pos[0] + this.canvas.width * 0.5;
+      this.move.offsetY = -pos[1] + this.canvas.height * 0.5;
+
       this.drawLayer();
     }
   }
-  setView(center: LngLatXY, z: number) {
-    if (center[0] >= -180 && center[0] <= 180 && center && center[1] >= -90 && center[1] <= 90) {
-      this.center = center;
-    }
-    if (z >= this.minZoom && z <= this.maxZoom) {
-      this.zoom = z;
-    }
-    this.drawLayer();
-  }
 
-  onWheel = debounce(
-    function (ev: WheelEvent) {
-      console.log('🚀 ~ MyMap ~ onWheel ~ ev:', ev, ev.deltaY);
-      if (ev.deltaY > 0) {
-        //down
-        this.setZoom(this.zoom - 1);
-      } else {
-        //up
-        this.setZoom(this.zoom + 1);
-      }
-    }.bind(this),
-    100
-  );
+  onWheel(ev: WheelEvent) {
+    if (ev.deltaY > 0) {
+      //down
+      this.setZoom(this.zoom - this.zoomStep);
+    } else {
+      //up
+      this.setZoom(this.zoom + this.zoomStep);
+    }
+  }
   onMouseDown(ev: MouseEvent) {
     this.move.enable = true;
     this.move.isMove = false;
     //鼠标开始位置
     this.move.startX = ev.pageX;
     this.move.startY = ev.pageY;
+    //鼠标初始位置
+    this.move.originX = ev.pageX;
+    this.move.originY = ev.pageY;
   }
   onMouseMove(ev: MouseEvent) {
     if (this.move.enable) {
-      this.move.isMove = true;
-      //鼠标移动后位置
+      //鼠标移动超过5px则为移动地图
+      if (Math.abs(ev.pageX - this.move.originX) >= 5 || Math.abs(ev.pageY - this.move.originY) >= 5) {
+        this.move.isMove = true;
+      }
+
+      //地图移动距离XY
       this.move.offsetX += ev.pageX - this.move.startX;
       this.move.offsetY += ev.pageY - this.move.startY;
       this.move.startX = ev.pageX;
       this.move.startY = ev.pageY;
     }
   }
-  onMouseUp() {
+  onMouseUp(ev: MouseEvent) {
+    //移动地图
     if (this.move.enable && this.move.isMove) {
-      this.move.enable = false;
-    }
-  }
+      //计算新的中心位置
+      const newcenter = this.canvas2lnglat([this.canvas.width * 0.5, this.canvas.height * 0.5]);
+      this.center = newcenter;
 
-  onClickMap(ev: MouseEvent) {
-    this.move.enable = false;
-    if (!this.move.isMove) {
-      const x = ev.offsetX;
-      const y = ev.offsetY;
-
-      // const lnglat = this.projection.px2lnglat([x + this.tileStart[0], y + this.tileStart[1]], this.zoom);
-      // //   console.log("🚀 ~ MyMap ~ onClickMap ~ lnglat:", lnglat)
-
-      // const objs = this.renderer.checkShapes(x, y);
-      // //   console.log('🚀 ~ MyMap ~ onClickMap ~ objs:', objs);
-
-      // const htmls = this.checkHtmlBox(x, y);
-      // this.events.emit('click', { objs, lnglat, x, y, htmls });
-    }
-  }
-
-  resize = debounce(
-    function () {
-      const size = this.getMapSize();
-
-      this.mark.style.width = size[0] + 'px';
-      this.mark.style.height = size[1] + 'px';
-      this.overlay.style.width = size[0] + 'px';
-      this.overlay.style.height = size[1] + 'px';
-      this.canvas.width = size[0];
-      this.canvas.height = size[1];
       this.drawLayer();
-    }.bind(this),
-    this.isFirst ? 0 : 100
-  );
-  getMapSize() {
-    return [this.container.clientWidth, this.container.clientHeight];
+    } else {
+      //点击地图
+      this.clickMap(ev);
+    }
+    this.move.isMove = false;
+    this.move.enable = false;
   }
+  onClickMap(ev: MouseEvent) {
+    const x = ev.offsetX;
+    const y = ev.offsetY;
+
+    const lnglat = this.canvas2lnglat([x, y]);
+    console.log('🚀  ~ lnglat:', x, y, lnglat);
+
+    const objs = this.renderer.checkShapes(x, y);
+    console.log('🚀  ~ objs:', objs);
+
+    const htmls = this.checkHtmlBox(x, y);
+    this.events.emit('click', { objs, lnglat, x, y, htmls });
+  }
+  onResize() {
+    const w = this.container.offsetWidth;
+    const h = this.container.offsetHeight;
+    this.overlay.style.width = w + 'px';
+    this.overlay.style.height = h + 'px';
+    this.canvas.width = w;
+    this.canvas.height = h;
+    this.drawLayer();
+  }
+
   //经纬度转canvas上的像素坐标
   lnglat2Canvas(lnglat: LngLatXY): LngLatXY {
     const [x, y] = this.projection.lnglat2px(lnglat);
     return [x + this.move.offsetX, y + this.move.offsetY];
   }
-  canvas2lnglat(xy: LngLatXY) {
-    const p = this.projection.lnglat2px(xy);
-    return [p[0] - this.move.offsetX, p[1] - this.move.offsetY];
-  }
-  xy2lnglat(xy: LngLatXY) {
-    return this.projection.px2lnglat(xy);
-  }
-  lnglat2xy(lnglat: LngLatXY) {
-    return this.projection.lnglat2px(lnglat);
+  //canvas上的像素坐标转经纬度
+  canvas2lnglat(xy: LngLatXY): LngLatXY {
+    const p = this.projection.px2lnglat([xy[0] - this.move.offsetX, xy[1] - this.move.offsetY]);
+    return p as LngLatXY;
   }
 
   async drawLayer() {
@@ -392,7 +416,13 @@ export class MyMap {
     this.isDrawLayer = true;
     this.renderer.clear();
     const ctx = this.ctx;
-    ctx.drawImage(image, 0, 0, this.imageWidth * this.scaleVal, this.imageHeight * this.scaleVal);
+    ctx.drawImage(
+      this.image!,
+      this.move.offsetX,
+      this.move.offsetY,
+      this.projection.imageWidth * this.projection.scaleVal,
+      this.projection.imageHeight * this.projection.scaleVal
+    );
     this.isDrawLayer = false;
     this.isFirst = false;
     this.drawShape();
@@ -435,3 +465,59 @@ export class MyMap {
     }
   }
 }
+
+const resourcemap = new ResourceMap({
+  container: document.getElementById('container')!,
+  center: [116.407387, 39.904179],
+  zoom: 2
+});
+resourcemap.init();
+let index = 0;
+//绘制中国边界
+travelGeo(ChinaJson, (path: LngLatXY[], a: any) => {
+  resourcemap.add({
+    id: a.properties.name + ++index,
+    type: 'Line',
+    path: path,
+    isClose: true,
+    style: {
+      lineColor: 'red',
+      lineWidth: 3
+    }
+  });
+});
+//添加多边形
+const polygon: CanvasDrawType = {
+  id: 'Polygon',
+  type: 'Polygon',
+  path: [
+    [110, 39],
+    [116, 39],
+    [116, 30]
+  ],
+  style: {
+    fillColor: 'blue',
+    fillOpacity: 0.5,
+    lineColor: 'blue',
+    lineWidth: 3
+  },
+  isAction: true
+};
+resourcemap.add(polygon);
+//添加html
+resourcemap.addHtml({
+  type: 'html',
+  content: `<div class="text-box"><div>Hello Map</div></div>`,
+  pos: [116.407387, 39.904179],
+  id: 'textbox',
+  isAction: true
+});
+//监听点击动作
+resourcemap.events.on('click', ({ objs, lnglat, htmls }: any) => {
+  console.log('click', objs, lnglat, htmls);
+  if (objs.length) {
+    objs[0].style.fillColor = 'red';
+    objs[0].style.lineColor = 'red';
+    resourcemap.drawLayer();
+  }
+});
