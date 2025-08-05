@@ -1,7 +1,8 @@
-import { type CanvasDrawType, CanvasRender } from './CanvasRender';
-import { debounce, nextTick } from './util';
+import { type CanvasDrawType, CanvasRender } from '../utils/CanvasRender';
+import { nextTick } from '../utils/utils';
+import { debounce } from 'lodash-es';
 import { SphericalMercator, type LngLatXY } from './SphericalMercator';
-import { EventEmitter } from './EventEmitter';
+import { EventEmitter } from '../utils/EventEmitter';
 
 type MapOptions = {
   center: LngLatXY;
@@ -159,6 +160,8 @@ export class MyMap {
     if (data.hidden) {
       dom.style.display = 'none';
       return;
+    } else {
+      dom.style.display = '';
     }
     //收集html范围，用于事件监听
     if (

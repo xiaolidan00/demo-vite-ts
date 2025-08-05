@@ -39,6 +39,7 @@ class TimeRangeCanvas {
   draw: Function;
   isMove = false;
   moveStart = 0;
+  moveOrigin = 0;
   moveStep = 0.5;
   moveOffset = 0;
   scale = 1;
@@ -163,17 +164,22 @@ class TimeRangeCanvas {
       this.draw();
     }
   }
-  onMoveEnd() {
-    if (this.isMove && this.scale > 1) {
+  onMoveEnd(ev: PointerEvent) {
+    if (this.isMove) {
+      if (this.scale > 1) {
+        this.draw();
+      }
+      if (Math.abs(ev.offsetX - this.moveOrigin) < 5) {
+        this.showTooltip(ev);
+      }
       this.isMove = false;
-
-      this.draw();
     }
   }
   onMoveStart(ev: PointerEvent) {
     this.isMove = true;
     this.moveStart = ev.offsetX;
     this.hideTooltip();
+    this.moveOrigin = ev.offsetX;
   }
   //检查移动范围
   checkMove() {
@@ -187,7 +193,7 @@ class TimeRangeCanvas {
     if (this.isLock) return;
     const x = ev.offsetX;
 
-    if (this.isMove) {
+    if (this.isMove && Math.abs(ev.offsetX - this.moveOrigin) >= 5) {
       this.moveOffset += (ev.offsetX - this.moveStart) * this.moveStep;
 
       this.checkMove();

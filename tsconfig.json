@@ -15,7 +15,8 @@
     "declaration": true,
     "noImplicitThis": false,
     "jsx": "preserve",
-    "lib": ["ESNext", "DOM"]
+    "lib": ["ESNext", "DOM"],
+    "typeRoots": ["node_modules/@types", "src/@types"]
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts", "index.ts"],
   "exclude": ["src/**/*.stories.ts", "src/examples/", "src/**/*.test.ts"],
