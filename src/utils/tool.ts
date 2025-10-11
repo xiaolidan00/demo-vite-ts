@@ -27,9 +27,3 @@ export function createGui(config: GuiType[], dataObj: { [n: string]: boolean | s
   });
   return gui;
 }
-export const uuid = () => {
-  const id = URL.createObjectURL(new Blob());
-
-  URL.revokeObjectURL(id);
-  return id.substring(5 + location.origin.length + 1);
-};

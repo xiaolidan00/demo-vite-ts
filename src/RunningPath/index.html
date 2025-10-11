@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      .edit-point {
+        height: 30px;
+        width: 30px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        background-color: red;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        border-radius: 50%;
+        cursor: move;
+        margin-left: -15px;
+        margin-top: -15px;
+        position: absolute;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="canvasContainer" style="height: 800px; width: 800px; border: solid 1px gray"></div>
+    <button id="edit">编辑路径</button>
+    <select id="currentPath" value="1">
+      <option value="path1">路径1</option>
+      <option value="path2">路径2</option>
+      <option value="path3">路径3</option>
+    </select>
+
+    <script type="module" src="./index.ts"></script>
+  </body>
+</html>

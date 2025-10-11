@@ -18,9 +18,11 @@
     "vite": "^6.2.5"
   },
   "dependencies": {
+    "@tweenjs/tween.js": "^25.0.0",
     "dayjs": "^1.11.13",
     "echarts": "^5.6.0",
     "exceljs": "^4.4.0",
+    "interactjs": "^1.10.27",
     "lil-gui": "^0.20.0",
     "lodash-es": "^4.17.21",
     "mammoth": "^1.9.1",
