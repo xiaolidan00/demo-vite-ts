@@ -38,7 +38,7 @@ type RunningPathType = {
   //线宽
   strokeWidth?: number;
   //线颜色
-  strokeColor?: string;
+  strokeColor?: string | string[];
   //实线长度
   stepWidth: number;
   //间隔长度
@@ -92,11 +92,13 @@ class RunningPath extends BaseShape {
   draw(ctx: CanvasRenderingContext2D) {
     this.stop();
     const props = this.props;
-
     const p = props.path;
+    //路径点数量小于2不绘制
     if (p.length < 2) return;
+    //折线总长度
     let sum = 0;
     let pre = 0;
+    //计算每段折线的长度和开始结束距离
     const pathList: Array<{
       start: [number, number];
       startV: number;
@@ -118,78 +120,87 @@ class RunningPath extends BaseShape {
       });
       pre = sum;
     }
+    //每段单位实线和虚线的长度
     const unit = props.dashWidth + props.stepWidth;
+    //虚线的段数
     const num = Math.ceil(sum / unit);
 
     const drawLine = (obj: { t: number }) => {
+      //折线样式
       ctx.lineCap = props.lineCap || 'butt';
       ctx.shadowBlur = 0;
-
       ctx.globalAlpha = props.opacity || 1;
       ctx.lineWidth = props.strokeWidth || 1;
-      ctx.strokeStyle = props.strokeColor || 'red';
+      let lineColor: any = 'red';
+      if (typeof props.strokeColor === 'string' && props.strokeColor) {
+        lineColor = props.strokeColor;
+      } else if (Array.isArray(props.strokeColor) && props.strokeColor.length === 2) {
+        const start = props.path[0];
+        const end = props.path[props.path.length - 1];
+        const startColor = props.strokeColor[0];
+        const endColor = props.strokeColor[1];
+        const grd = ctx.createLinearGradient(start[0], start[1], end[0], end[1]);
+        grd.addColorStop(0.1, startColor);
+        grd.addColorStop(0.9, endColor);
+        lineColor = grd;
+      }
+      ctx.strokeStyle = lineColor;
+      //移动距离
       const d = obj.t * sum;
+
+      //绘制折线
+      ctx.beginPath();
       for (let i = 0; i < num; i++) {
-        const s = (d + i * unit) % sum;
+        //实线开始点距离
+        const a = (d + i * unit) % sum;
         for (let j = 0; j < pathList.length; j++) {
           const current = pathList[j];
-          const b = (s + props.stepWidth) % sum;
+          //实线结束点距离
+          const b = (a + props.stepWidth) % sum;
 
-          if (s >= current.startV && s < current.endV) {
-            const t = (s - current.startV) / current.size;
+          if (a >= current.startV && a < current.endV) {
+            const t = (a - current.startV) / current.size;
             const p0 = lerpPoint(current.start, current.end, t);
-            if (b > s) {
+            if (b > a) {
               if (b >= current.startV && b < current.endV) {
-                ctx.beginPath();
                 //同一段直线
                 const e = (b - current.startV) / current.size;
-
                 const p1 = lerpPoint(current.start, current.end, e);
-
                 ctx.moveTo(p0[0], p0[1]);
                 ctx.lineTo(p1[0], p1[1]);
-                ctx.stroke();
               } else {
-                ctx.beginPath();
                 //拐点
                 const next = pathList[j + 1];
                 ctx.moveTo(p0[0], p0[1]);
                 ctx.lineTo(current.end[0], current.end[1]);
-
+                //下一条直线的开始
                 const e = (b - next.startV) / next.size;
-
                 const p1 = lerpPoint(next.start, next.end, e);
-
                 ctx.lineTo(p1[0], p1[1]);
-                ctx.stroke();
               }
             } else {
-              ctx.beginPath();
               //头尾循环
               ctx.moveTo(p0[0], p0[1]);
               ctx.lineTo(current.end[0], current.end[1]);
 
+              //开始直线
               const first = pathList[0];
               const e = (b - first.startV) / first.size;
-
               const p1 = lerpPoint(first.start, first.end, e);
-
               ctx.moveTo(first.start[0], first.start[1]);
               ctx.lineTo(p1[0], p1[1]);
-              ctx.stroke();
             }
             break;
           }
         }
       }
+      ctx.stroke();
     };
 
     this.theTween = new TWEEN.Tween({ t: props.reverse ? 1 : 0 })
       .to({ t: props.reverse ? 0 : 1 }, Math.round((sum / props.speed) * 1000))
       .repeat(Infinity)
-      .onUpdate((obj) => {
-        drawLine(obj);
-      });
+      .onUpdate(drawLine);
 
     TWEEN.add(this.theTween);
     this.theTween.start();
@@ -316,15 +327,18 @@ class CirclePath extends BaseShape {
       pre = sum;
     }
 
+    //小球数量
     const num = props.pointNum || 5;
+    //单位长度
     const unit = sum / num;
     const drawLine = (obj: { t: number }) => {
       ctx.lineCap = 'butt';
 
+      //绘制路径底线
       if (props.pathWidth) {
         ctx.shadowBlur = 0;
         ctx.globalAlpha = props.pathOpacity || 0.3;
-        ctx.lineWidth = props.pathWidth || props.radius * 2;
+        ctx.lineWidth = props.pathWidth;
         ctx.strokeStyle = props.pathColor || 'red';
         ctx.beginPath();
         const startPoint = props.path[0];
@@ -335,19 +349,22 @@ class CirclePath extends BaseShape {
         }
         ctx.stroke();
       }
-
+      //小球样式
       ctx.shadowBlur = props.blur || 10;
       ctx.shadowColor = props.color || 'red';
       ctx.fillStyle = props.color || 'red';
       ctx.globalAlpha = props.opacity || 1;
+      //移动距离
       const d = obj.t * sum;
       for (let i = 0; i < num; i++) {
+        //小球距离
         const s = (d + i * unit) % sum;
         for (let j = 0; j < pathList.length; j++) {
           const current = pathList[j];
+          //球落在该线段
           if (s >= current.startV && s < current.endV) {
-            const t = (s + props.radius - current.startV) / current.size;
-            const p0 = lerpPoint(current.start, current.end, t);
+            //小球的位置
+            const p0 = lerpPoint(current.start, current.end, (s - current.startV) / current.size);
             ctx.beginPath();
             ctx.arc(p0[0], p0[1], props.radius, 0, 2 * Math.PI);
             ctx.fill();
@@ -360,9 +377,7 @@ class CirclePath extends BaseShape {
     this.theTween = new TWEEN.Tween({ t: props.reverse ? 1 : 0 })
       .to({ t: props.reverse ? 0 : 1 }, Math.round((sum / props.speed) * 1000))
       .repeat(Infinity)
-      .onUpdate((obj) => {
-        drawLine(obj);
-      });
+      .onUpdate(drawLine);
 
     TWEEN.add(this.theTween);
     this.theTween.start();
@@ -417,7 +432,6 @@ type CurvePathType = {
   opacity?: number;
   //反向流动
   reverse?: boolean;
-
   //流动速度
   speed: number;
 };
@@ -472,12 +486,14 @@ class CurvePath extends BaseShape {
     const props = this.props;
 
     if (props.path.length < 4) return;
+    //距离总和
     let sum = 0;
     for (let i = 1; i < props.path.length; i++) {
       sum += getDistance(props.path[i - 1], props.path[i]);
     }
-
+    //小球数量
     const num = props.pointNum || 5;
+    //单位间隔百分比
     const unit = 1 / num;
 
     const bezierCurve = (t: number) => {
@@ -501,11 +517,14 @@ class CurvePath extends BaseShape {
     const drawLine = (obj: { t: number }) => {
       ctx.lineCap = 'butt';
 
+      //绘制贝塞尔曲线路径底线
       if (props.pathWidth) {
+        //路径样式
         ctx.shadowBlur = 0;
         ctx.globalAlpha = props.pathOpacity || 0.3;
         ctx.lineWidth = props.pathWidth || props.radius * 2;
         ctx.strokeStyle = props.pathColor || 'red';
+        //贝塞尔曲线
         ctx.beginPath();
         const startPoint = props.path[0];
         ctx.moveTo(startPoint[0], startPoint[1]);
@@ -516,14 +535,16 @@ class CurvePath extends BaseShape {
         ctx.stroke();
       }
 
+      //小球样式
       ctx.shadowBlur = props.blur || 10;
       ctx.shadowColor = props.color || 'red';
       ctx.fillStyle = props.color || 'red';
       ctx.globalAlpha = props.opacity || 1;
 
       for (let i = 0; i < num; i++) {
+        //小球位置百分比
         const s = (obj.t + i * unit) % 1;
-
+        //小球在贝塞尔曲线的位置
         const p0 = bezierCurve(s);
         ctx.beginPath();
         ctx.arc(p0[0], p0[1], props.radius, 0, 2 * Math.PI);
@@ -534,9 +555,7 @@ class CurvePath extends BaseShape {
     this.theTween = new TWEEN.Tween({ t: props.reverse ? 1 : 0 })
       .to({ t: props.reverse ? 0 : 1 }, Math.round((sum / props.speed) * 1000))
       .repeat(Infinity)
-      .onUpdate((obj) => {
-        drawLine(obj);
-      });
+      .onUpdate(drawLine);
 
     TWEEN.add(this.theTween);
     this.theTween.start();
@@ -709,7 +728,7 @@ const path1 = new RunningPath({
   ],
   speed: 100,
   strokeWidth: 5,
-  strokeColor: 'red',
+  strokeColor: ['yellow', 'red'],
   stepWidth: 40,
   dashWidth: 20,
   opacity: 1,
@@ -720,14 +739,16 @@ const path2 = new CirclePath({
   id: 'path2',
   path: [
     [200, 100],
-    [400, 600]
+    [400, 600],
+    [600, 100]
   ],
   pathWidth: 5,
+  pointNum: 8,
   color: 'blue',
-  pathColor: 'green',
+  pathColor: 'dodgerblue',
+  pathOpacity: 0.5,
   speed: 100,
   radius: 10,
-  dashWidth: 30,
   opacity: 1,
   reverse: false
 });
@@ -736,18 +757,18 @@ cm.add(path2);
 const path3 = new CurvePath({
   id: 'path3',
   path: [
-    [300, 200],
-    [400, 300],
-    [500, 100],
+    [500, 50],
+    [500, 500],
+    [200, 200],
 
-    [600, 200]
+    [100, 600]
   ],
   pathWidth: 5,
-  color: 'blue',
-  pathColor: 'green',
+  pointNum: 8,
+  color: 'red',
+  pathColor: 'pink',
   speed: 100,
   radius: 10,
-
   opacity: 1,
   reverse: false
 });
