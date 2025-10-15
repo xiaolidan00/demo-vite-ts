@@ -49,3 +49,7 @@
 ## 预览 PDF pdfjs
 
 `viewPdf/`
+
+## Canvas 自定义流动路径
+
+`RunningPath/`
